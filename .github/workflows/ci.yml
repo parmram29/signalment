@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+jobs:
+  # The repository must stay usable with no Rust toolchain at all. This job is
+  # what proves it: the differential suite skips, everything else runs.
+  python-only:
+    name: Python only (no extension)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev]"
+      - name: Lint corpus
+        run: python -m vetrag lint
+      - name: Tests
+        run: pytest -q
+      - name: Gold-set drift
+        run: python -m vetrag drift --strict
+
+  rust-core:
+    name: Rust core (no Python linkage)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Format
+        run: cargo fmt --manifest-path crates/vetrag_bm25/Cargo.toml --check
+      - name: Clippy
+        run: >
+          cargo clippy --manifest-path crates/vetrag_bm25/Cargo.toml
+          --no-default-features -- -D warnings
+      - name: Unit tests
+        run: cargo test --manifest-path crates/vetrag_bm25/Cargo.toml --no-default-features
+
+  equivalence:
+    name: Rust vs Python equivalence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pip install -e ".[dev]" maturin
+      - name: Build extension
+        run: maturin develop -m crates/vetrag_bm25/Cargo.toml --release
+      - name: Differential tests must actually run, not skip
+        run: pytest tests/test_backend_equivalence.py -q --no-header -rN
+      - name: Full suite
+        run: pytest -q

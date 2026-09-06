@@ -106,6 +106,8 @@ src/vetrag/
   corpus.py            Loading and parent/child chunking
   retrieval/           BM25 baseline, species filter, RRF fusion, dense stub
   evaluation/          Metrics, gold-set loader, runner, ablation report
+crates/vetrag_bm25/    Optional Rust BM25 accelerator (Cargo)
+benchmarks/            Backend timing harness
 tests/                 76 tests, no network, no models
 docs/                  Note schema and evaluation methodology
 ```
@@ -136,6 +138,15 @@ which point the abstention metrics silently start measuring the wrong thing. The
 threshold for "answers too strongly" is the median top score of the answerable
 items, so it self-calibrates instead of decaying into a meaningless constant as
 the corpus grows.
+
+**Two BM25 implementations, one interface.** `src/vetrag/retrieval/bm25.py` is
+the reference and is never removed; `crates/vetrag_bm25` is an optional Rust
+accelerator selected at runtime by `retrieval/backends.py`. A clone with no Rust
+toolchain runs everything — the differential suite simply skips. This is the
+pattern `orjson` and `numpy` use: an accelerated path when available, a correct
+path always. `tests/test_backend_equivalence.py` asserts identical rankings,
+identical chunk attribution, and scores agreeing to 1e-9, so the Python file is
+the specification the crate is written against.
 
 **No fine-tuning.** For injecting knowledge, retrieval outperforms unsupervised
 fine-tuning; fine-tuning teaches form, not facts. It is out of scope until a

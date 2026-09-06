@@ -14,6 +14,9 @@ dev = ["pytest>=7.4"]
 # Deliberately not required by the core package: the eval harness must run
 # with no models installed, so the baseline is always reproducible.
 retrieval = ["sentence-transformers>=3.0", "faiss-cpu>=1.8"]
+# Builds the optional Rust BM25 extension. The repository is fully functional
+# without it; see crates/vetrag_bm25/README.md.
+accel = ["maturin>=1.5"]
 
 [project.scripts]
 vetrag = "vetrag.cli:main"
