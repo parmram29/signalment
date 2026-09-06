@@ -122,8 +122,8 @@ question + species
 | Abstention scoring | `evaluation/metrics.py` | Built |
 | Gold set loader + guards | `evaluation/dataset.py` | Built |
 | Ablation runner + report | `evaluation/runner.py` | Built |
-| Note staleness report | — | Phase 2 |
-| Gold-set drift check | — | Phase 2 |
+| Note staleness report | `freshness.py` | Built |
+| Gold-set drift check | `evaluation/drift.py` | Built |
 | Dense retriever | `retrieval/dense.py` | Phase 3 (stub) |
 | Cross-encoder reranker | — | Phase 4 |
 | Score calibration | — | Phase 4 |
@@ -415,12 +415,14 @@ Do not start the next phase until the current one's gate passes.
 ### Phase 1 — Harness ✅ COMPLETE
 Schema, linter, chunking, BM25, species filter, RRF, metrics, gold loader,
 runner, report.
-**Exit:** `pytest` green, `vetrag eval` prints an ablation table. *(60 tests)*
+**Exit:** `pytest` green, `vetrag eval` prints an ablation table. *(76 tests)*
 
-### Phase 2 — Freshness and drift
-`vetrag stale --days N`; gold-set drift check.
+### Phase 2 — Freshness and drift ✅ COMPLETE
+`vetrag stale --days N`; `vetrag drift`, also run automatically before every
+`vetrag eval` so a corrupted gold set is never read as a clean result.
 **Exit:** adding a note that answers a previously-unanswerable gold item causes
-a visible warning rather than silent metric corruption.
+a visible warning rather than silent metric corruption. *(Verified: adding a
+cruciate-ligament note flags gold item q008, "top 24.71 >= 5.77 median".)*
 
 ### Phase 3 — Vertical slice corpus + dense retrieval
 Pick **one** body system or one course. 50–100 real notes. Grow gold set to

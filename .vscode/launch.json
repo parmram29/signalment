@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "vetrag eval",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "vetrag",
+      "args": ["eval"],
+      "console": "integratedTerminal",
+      "env": { "PYTHONPATH": "${workspaceFolder}/src" }
+    },
+    {
+      "name": "vetrag lint",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "vetrag",
+      "args": ["lint"],
+      "console": "integratedTerminal",
+      "env": { "PYTHONPATH": "${workspaceFolder}/src" }
+    }
+  ]
+}

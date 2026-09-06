@@ -9,8 +9,10 @@ from pathlib import Path
 
 from .corpus import chunk_corpus, load_corpus
 from .evaluation.dataset import load_gold
+from .evaluation.drift import check_drift, format_warnings
 from .evaluation.report import markdown_table
 from .evaluation.runner import evaluate
+from .freshness import stale_notes
 from .retrieval.bm25 import BM25Retriever
 from .retrieval.filters import SpeciesFilter
 
@@ -44,6 +46,11 @@ def cmd_eval(args) -> int:
         evaluate(r, gold, k=args.k, abstain_threshold=args.abstain_threshold)
         for r in configs
     ]
+
+    warnings = check_drift(configs[-1], gold, k=args.k)
+    if warnings:
+        print(format_warnings(warnings), file=sys.stderr)
+        print(file=sys.stderr)
 
     print(f"corpus: {len(notes)} notes -> {len(chunks)} chunks")
     print(f"gold:   {len(gold)} questions "
@@ -89,6 +96,41 @@ def cmd_sweep(args) -> int:
     return 0
 
 
+def cmd_stale(args) -> int:
+    """Report notes overdue for review."""
+    notes, errors = load_corpus(args.corpus)
+    for path, message in errors:
+        print(f"{path}: {message}", file=sys.stderr)
+
+    stale = stale_notes(notes, args.days)
+    if not stale:
+        print(f"all {len(notes)} note(s) reviewed within {args.days} days")
+        return 0
+
+    width = max(len(s.note.id) for s in stale)
+    print(f"{len(stale)} of {len(notes)} note(s) unreviewed for over {args.days} days\n")
+    for item in stale:
+        mark = "!" if item.is_clinical else " "
+        print(f"{mark} {item.note.id.ljust(width)}  {item.days:>5}d since {item.basis}"
+              f"  {item.note.note_type:<12} {item.note.title}")
+    print("\n! = dosage or protocol note; clinical numbers age worst.")
+    return 1 if args.strict else 0
+
+
+def cmd_drift(args) -> int:
+    """Check the gold set against the current corpus."""
+    notes, errors = load_corpus(args.corpus)
+    if errors:
+        print(f"refusing to check: {len(errors)} invalid note(s). Run `lint`.", file=sys.stderr)
+        return 1
+
+    gold = load_gold(args.gold, known_note_ids={n.id for n in notes})
+    retriever = SpeciesFilter(BM25Retriever(chunk_corpus(notes)), notes)
+    warnings = check_drift(retriever, gold, k=args.k, strong_score=args.strong)
+    print(format_warnings(warnings))
+    return 1 if warnings and args.strict else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="vetrag")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -113,6 +155,25 @@ def main(argv: list[str] | None = None) -> int:
     sweep.add_argument("--thresholds", type=float, nargs="+",
                        default=[0, 1, 2, 3, 4, 5, 6, 8, 10])
     sweep.set_defaults(func=cmd_sweep)
+
+    stale = sub.add_parser("stale", help="list notes overdue for review")
+    stale.add_argument("--corpus", default=DEFAULT_CORPUS)
+    stale.add_argument("--days", type=int, default=180,
+                       help="review interval before a note counts as stale")
+    stale.add_argument("--strict", action="store_true",
+                       help="exit non-zero when stale notes exist (for CI)")
+    stale.set_defaults(func=cmd_stale)
+
+    drift = sub.add_parser("drift", help="check the gold set against the corpus")
+    drift.add_argument("--corpus", default=DEFAULT_CORPUS)
+    drift.add_argument("--gold", default=DEFAULT_GOLD)
+    drift.add_argument("-k", type=int, default=5)
+    drift.add_argument("--strong", type=float, default=None,
+                       help="score above which an unanswerable item is suspicious "
+                            "(default: median top score of answerable items)")
+    drift.add_argument("--strict", action="store_true",
+                       help="exit non-zero when drift is detected (for CI)")
+    drift.set_defaults(func=cmd_drift)
 
     args = parser.parse_args(argv)
     return args.func(args)

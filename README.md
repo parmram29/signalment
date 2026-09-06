@@ -6,12 +6,31 @@ number measured against a gold set, and every number can be reproduced with one
 command.
 
 ```bash
-pip install -e ".[dev]"
-python -m vetrag lint      # validate the corpus
-python -m vetrag eval      # ablation table
-python -m vetrag sweep     # abstention threshold curve
-pytest -q                  # 60 tests
+make install     # editable install with dev deps
+make lint        # validate the corpus front-matter
+make eval        # ablation table
+make sweep       # abstention threshold curve
+make stale       # notes overdue for review
+make drift       # gold set vs. current corpus
+make check       # lint + tests + drift, the pre-commit gate
 ```
+
+## Setup
+
+Requires Python 3.10+.
+
+```bash
+git clone https://github.com/parmram29/Autonomous_Vet.git
+cd Autonomous_Vet
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+make check                       # should print: 76 passed ... ok
+```
+
+Open the folder in VS Code and accept the recommended extensions. `.vscode/`
+sets the interpreter to `.venv`, puts `src` on `PYTHONPATH`, and enables pytest
+discovery, so tests are runnable from the Testing panel with no further config.
 
 ## Why it is built this way
 
@@ -87,7 +106,7 @@ src/vetrag/
   corpus.py            Loading and parent/child chunking
   retrieval/           BM25 baseline, species filter, RRF fusion, dense stub
   evaluation/          Metrics, gold-set loader, runner, ablation report
-tests/                 60 tests, no network, no models
+tests/                 76 tests, no network, no models
 docs/                  Note schema and evaluation methodology
 ```
 
@@ -108,6 +127,15 @@ hallucinate.
 Leaderboard rank is a weak predictor of retrieval quality on a specific corpus,
 so the embedding model is an ablation row to be decided against this gold set —
 not a choice made up front and then defended.
+
+**The corpus reports its own decay.** `make stale` lists notes overdue for
+review, with dosage and protocol notes sorted first because clinical numbers age
+worst. `make drift` catches the failure mode that would otherwise be invisible:
+adding notes can make a previously *unanswerable* gold question answerable, at
+which point the abstention metrics silently start measuring the wrong thing. The
+threshold for "answers too strongly" is the median top score of the answerable
+items, so it self-calibrates instead of decaying into a meaningless constant as
+the corpus grows.
 
 **No fine-tuning.** For injecting knowledge, retrieval outperforms unsupervised
 fine-tuning; fine-tuning teaches form, not facts. It is out of scope until a
