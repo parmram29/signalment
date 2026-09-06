@@ -19,9 +19,9 @@ import argparse
 import statistics
 import time
 
-from vetrag.corpus import Chunk, chunk_corpus, load_corpus
-from vetrag.retrieval.backends import available_backends, make_retriever
-from vetrag.retrieval.base import Query
+from signalment.corpus import Chunk, chunk_corpus, load_corpus
+from signalment.retrieval.backends import available_backends, make_retriever
+from signalment.retrieval.base import Query
 
 QUERIES = [
     "permethrin sodium channels cats",
@@ -69,7 +69,7 @@ def main() -> int:
 
     notes, errors = load_corpus(args.corpus)
     if errors:
-        print(f"{len(errors)} invalid note(s); run `vetrag lint`")
+        print(f"{len(errors)} invalid note(s); run `signalment lint`")
         return 1
 
     chunks = scale_corpus(chunk_corpus(notes), args.scale)
@@ -82,7 +82,7 @@ def main() -> int:
     if len(backends) == 1:
         print("only one backend available — build the extension for a comparison:")
         print("  pip install maturin")
-        print("  maturin develop -m crates/vetrag_bm25/Cargo.toml --release\n")
+        print("  maturin develop -m crates/signalment_bm25/Cargo.toml --release\n")
 
     header = f"| {'backend':<12} | {'build (ms)':>11} | {'search (ms)':>12} | {'speedup':>8} |"
     print(header)

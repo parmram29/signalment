@@ -9,11 +9,11 @@ use crate::bm25::Bm25Index as CoreIndex;
 
 /// A built BM25 index over chunk texts, searchable from Python.
 ///
-/// Mirrors `vetrag.retrieval.bm25.BM25Retriever` exactly. "Exactly" is not a
+/// Mirrors `signalment.retrieval.bm25.BM25Retriever` exactly. "Exactly" is not a
 /// figure of speech: `tests/test_backend_equivalence.py` asserts identical
 /// rankings and near-identical scores against the Python implementation, and
 /// that suite is the specification this crate is written against.
-#[pyclass(module = "vetrag_bm25", name = "Bm25Index", frozen)]
+#[pyclass(module = "signalment_bm25", name = "Bm25Index", frozen)]
 pub struct PyBm25Index {
     inner: CoreIndex,
 }
@@ -73,7 +73,7 @@ impl PyBm25Index {
 }
 
 #[pymodule]
-fn vetrag_bm25(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn signalment_bm25(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyBm25Index>()?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     Ok(())

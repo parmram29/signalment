@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vetrag"
+name = "signalment"
 version = "0.1.0"
 description = "Evaluation-first RAG assistant over a structured veterinary note corpus"
 requires-python = ">=3.10"
@@ -15,11 +15,11 @@ dev = ["pytest>=7.4"]
 # with no models installed, so the baseline is always reproducible.
 retrieval = ["sentence-transformers>=3.0", "faiss-cpu>=1.8"]
 # Builds the optional Rust BM25 extension. The repository is fully functional
-# without it; see crates/vetrag_bm25/README.md.
+# without it; see crates/signalment_bm25/README.md.
 accel = ["maturin>=1.5"]
 
 [project.scripts]
-vetrag = "vetrag.cli:main"
+signalment = "signalment.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

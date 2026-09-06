@@ -1,4 +1,4 @@
-//! Accelerated BM25 for the vetrag retrieval harness.
+//! Accelerated BM25 for the signalment retrieval harness.
 //!
 //! The crate is split deliberately:
 //!

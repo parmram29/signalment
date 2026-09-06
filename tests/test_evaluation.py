@@ -2,12 +2,12 @@ import json
 
 import pytest
 
-from vetrag.corpus import chunk_corpus, load_corpus
-from vetrag.evaluation.dataset import load_gold
-from vetrag.evaluation.report import markdown_table
-from vetrag.evaluation.runner import evaluate
-from vetrag.retrieval.bm25 import BM25Retriever
-from vetrag.retrieval.filters import SpeciesFilter
+from signalment.corpus import chunk_corpus, load_corpus
+from signalment.evaluation.dataset import load_gold
+from signalment.evaluation.report import markdown_table
+from signalment.evaluation.runner import evaluate
+from signalment.retrieval.bm25 import BM25Retriever
+from signalment.retrieval.filters import SpeciesFilter
 
 GOLD_PATH = "eval/gold/gold_v1.jsonl"
 

@@ -2,19 +2,19 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "vetrag eval",
+      "name": "signalment eval",
       "type": "debugpy",
       "request": "launch",
-      "module": "vetrag",
+      "module": "signalment",
       "args": ["eval"],
       "console": "integratedTerminal",
       "env": { "PYTHONPATH": "${workspaceFolder}/src" }
     },
     {
-      "name": "vetrag lint",
+      "name": "signalment lint",
       "type": "debugpy",
       "request": "launch",
-      "module": "vetrag",
+      "module": "signalment",
       "args": ["lint"],
       "console": "integratedTerminal",
       "env": { "PYTHONPATH": "${workspaceFolder}/src" }

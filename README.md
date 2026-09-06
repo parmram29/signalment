@@ -1,9 +1,18 @@
-# Autonomous Vet — an evaluation-first RAG assistant for veterinary students
+# Signalment
 
 A retrieval system over a structured corpus of veterinary notes, built
 **evaluation harness first**. Every architectural claim in this repository is a
 number measured against a gold set, and every number can be reproduced with one
 command.
+
+> **sig·nal·ment** *(n.)* — in veterinary practice, the description of a patient
+> that opens every clinical record: species, breed, age, sex. It is the first
+> thing written down because it changes what everything after it means.
+
+That is the name because it is also the architecture. Species is a hard
+retrieval filter here, not a ranking signal, for the same reason a clinician
+writes the signalment first: a canine answer to a feline question is not a
+near miss, it is a different answer.
 
 ```bash
 make install     # editable install with dev deps
@@ -20,8 +29,8 @@ make check       # lint + tests + drift, the pre-commit gate
 Requires Python 3.10+.
 
 ```bash
-git clone https://github.com/parmram29/Autonomous_Vet.git
-cd Autonomous_Vet
+git clone https://github.com/parmram29/signalment.git
+cd signalment
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
@@ -74,7 +83,7 @@ recall cannot fall is asserted as a test, not assumed.
 
 ### Abstention is the unsolved part
 
-`python -m vetrag sweep` produces the honest picture:
+`python -m signalment sweep` produces the honest picture:
 
 | threshold | recall@5 | abstain F1 | false refusal | unsupported answers |
 |-----------|----------|------------|---------------|---------------------|
@@ -101,12 +110,12 @@ see `docs/evaluation.md`.
 ```
 corpus/notes/          Atomic notes, YAML front-matter, one idea per file
 eval/gold/             Gold question set (JSONL) — the project's ground truth
-src/vetrag/
+src/signalment/
   schema.py            Note schema + validation rules
   corpus.py            Loading and parent/child chunking
   retrieval/           BM25 baseline, species filter, RRF fusion, dense stub
   evaluation/          Metrics, gold-set loader, runner, ablation report
-crates/vetrag_bm25/    Optional Rust BM25 accelerator (Cargo)
+crates/signalment_bm25/    Optional Rust BM25 accelerator (Cargo)
 benchmarks/            Backend timing harness
 tests/                 76 tests, no network, no models
 docs/                  Note schema and evaluation methodology
@@ -139,8 +148,8 @@ threshold for "answers too strongly" is the median top score of the answerable
 items, so it self-calibrates instead of decaying into a meaningless constant as
 the corpus grows.
 
-**Two BM25 implementations, one interface.** `src/vetrag/retrieval/bm25.py` is
-the reference and is never removed; `crates/vetrag_bm25` is an optional Rust
+**Two BM25 implementations, one interface.** `src/signalment/retrieval/bm25.py` is
+the reference and is never removed; `crates/signalment_bm25` is an optional Rust
 accelerator selected at runtime by `retrieval/backends.py`. A clone with no Rust
 toolchain runs everything — the differential suite simply skips. This is the
 pattern `orjson` and `numpy` use: an accelerated path when available, a correct

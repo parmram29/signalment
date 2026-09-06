@@ -1,8 +1,8 @@
-# vetrag_bm25
+# signalment_bm25
 
-Accelerated BM25 scoring for the vetrag retrieval harness.
+Accelerated BM25 scoring for the signalment retrieval harness.
 
-**This crate is an accelerator, not a replacement.** `src/vetrag/retrieval/bm25.py`
+**This crate is an accelerator, not a replacement.** `src/signalment/retrieval/bm25.py`
 stays in the repository permanently as the reference implementation. It is the
 oracle this crate is diffed against, and the path that runs when the extension
 is not built.
@@ -23,7 +23,7 @@ file or the other rather than smeared across both.
 
 ```bash
 pip install maturin
-maturin develop -m crates/vetrag_bm25/Cargo.toml --release
+maturin develop -m crates/signalment_bm25/Cargo.toml --release
 ```
 
 `--release` matters: a debug build of a scoring loop is slow enough to make the
@@ -33,7 +33,7 @@ benchmark meaningless.
 
 ```bash
 # Core logic, no Python involved.
-cargo test --manifest-path crates/vetrag_bm25/Cargo.toml --no-default-features
+cargo test --manifest-path crates/signalment_bm25/Cargo.toml --no-default-features
 
 # Equivalence with the Python reference. Skips if the extension is not built.
 pytest tests/test_backend_equivalence.py

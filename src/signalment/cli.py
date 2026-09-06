@@ -1,4 +1,4 @@
-"""Command line entry point: `python -m vetrag <command>`."""
+"""Command line entry point: `python -m signalment <command>`."""
 
 from __future__ import annotations
 
@@ -132,7 +132,7 @@ def cmd_drift(args) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="vetrag")
+    parser = argparse.ArgumentParser(prog="signalment")
     sub = parser.add_subparsers(dest="command", required=True)
 
     lint = sub.add_parser("lint", help="validate note front-matter")

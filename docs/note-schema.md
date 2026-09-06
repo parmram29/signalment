@@ -1,7 +1,7 @@
 # Note schema
 
 The contract between the corpus and everything downstream. Enforced by
-`src/vetrag/schema.py`; run `python -m vetrag lint` to check.
+`src/signalment/schema.py`; run `python -m signalment lint` to check.
 
 Metadata is attached **at ingestion**, never afterwards: retrieval filters and
 citation provenance both read from it, and a note without it cannot be filtered

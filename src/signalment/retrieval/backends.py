@@ -22,7 +22,7 @@ PREFERENCE = ("rust", "python")
 def rust_available() -> bool:
     """Whether the compiled extension can be imported."""
     try:
-        import vetrag_bm25  # noqa: F401
+        import signalment_bm25  # noqa: F401
     except ImportError:
         return False
     return True
@@ -43,10 +43,10 @@ class RustBM25Retriever:
     name = "bm25-rust"
 
     def __init__(self, chunks: list[Chunk], k1: float = 1.5, b: float = 0.75) -> None:
-        import vetrag_bm25
+        import signalment_bm25
 
         self.chunks = chunks
-        self._index = vetrag_bm25.Bm25Index(
+        self._index = signalment_bm25.Bm25Index(
             [chunk.indexed_text for chunk in chunks],
             [chunk.note_id for chunk in chunks],
             [chunk.chunk_id for chunk in chunks],
@@ -85,9 +85,9 @@ def make_retriever(
     if backend == "rust":
         if not rust_available():
             raise RuntimeError(
-                "the vetrag_bm25 extension is not built. Run:\n"
+                "the signalment_bm25 extension is not built. Run:\n"
                 "  pip install maturin\n"
-                "  maturin develop -m crates/vetrag_bm25/Cargo.toml --release"
+                "  maturin develop -m crates/signalment_bm25/Cargo.toml --release"
             )
         return RustBM25Retriever(chunks, k1=k1, b=b)
 

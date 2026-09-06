@@ -1,14 +1,14 @@
 import pytest
 
-from vetrag.corpus import chunk_corpus, load_corpus, parse_note
-from vetrag.evaluation.dataset import GoldItem
-from vetrag.evaluation.drift import (
+from signalment.corpus import chunk_corpus, load_corpus, parse_note
+from signalment.evaluation.dataset import GoldItem
+from signalment.evaluation.drift import (
     LABELS_UNREACHABLE,
     MAY_BE_ANSWERABLE,
     check_drift,
     format_warnings,
 )
-from vetrag.retrieval.bm25 import BM25Retriever
+from signalment.retrieval.bm25 import BM25Retriever
 
 NEW_NOTE = """---
 id: vet-ortho-0001

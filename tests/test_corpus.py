@@ -1,7 +1,7 @@
 import pytest
 
-from vetrag.corpus import chunk_note, load_corpus, parse_note
-from vetrag.schema import ValidationError
+from signalment.corpus import chunk_note, load_corpus, parse_note
+from signalment.schema import ValidationError
 
 VALID = """---
 id: vet-test-0001

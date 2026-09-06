@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from vetrag.evaluation import metrics
+from signalment.evaluation import metrics
 
 
 class TestRecall:

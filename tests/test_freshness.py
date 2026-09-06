@@ -2,8 +2,8 @@ from datetime import date
 
 import pytest
 
-from vetrag.corpus import parse_note
-from vetrag.freshness import stale_notes
+from signalment.corpus import parse_note
+from signalment.freshness import stale_notes
 
 TODAY = date(2026, 9, 1)
 

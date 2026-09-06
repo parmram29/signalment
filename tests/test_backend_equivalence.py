@@ -13,14 +13,14 @@ from __future__ import annotations
 
 import pytest
 
-from vetrag.corpus import chunk_corpus, load_corpus
-from vetrag.retrieval.backends import RustBM25Retriever, rust_available
-from vetrag.retrieval.base import Query
-from vetrag.retrieval.bm25 import BM25Retriever
+from signalment.corpus import chunk_corpus, load_corpus
+from signalment.retrieval.backends import RustBM25Retriever, rust_available
+from signalment.retrieval.base import Query
+from signalment.retrieval.bm25 import BM25Retriever
 
 pytestmark = pytest.mark.skipif(
     not rust_available(),
-    reason="vetrag_bm25 extension not built (maturin develop -m crates/vetrag_bm25/Cargo.toml)",
+    reason="signalment_bm25 extension not built (maturin develop -m crates/signalment_bm25/Cargo.toml)",
 )
 
 TOLERANCE = 1e-9

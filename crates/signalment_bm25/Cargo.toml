@@ -1,12 +1,12 @@
 [package]
-name = "vetrag_bm25"
+name = "signalment_bm25"
 version = "0.1.0"
 edition = "2021"
-description = "Accelerated BM25 scoring for the vetrag retrieval harness"
+description = "Accelerated BM25 scoring for the signalment retrieval harness"
 license = "MIT"
 
 [lib]
-name = "vetrag_bm25"
+name = "signalment_bm25"
 # cdylib is what Python imports; rlib lets `cargo test` link the crate.
 crate-type = ["cdylib", "rlib"]
 

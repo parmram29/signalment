@@ -2,7 +2,7 @@
 //!
 //! # What you are implementing
 //!
-//! A port of `src/vetrag/retrieval/bm25.py`. The Python version stays in the
+//! A port of `src/signalment/retrieval/bm25.py`. The Python version stays in the
 //! repo permanently as the reference implementation; this is an accelerator,
 //! not a replacement. `tests/test_backend_equivalence.py` asserts that the two
 //! produce **identical rankings** and scores agreeing to ~1e-9, so the Python

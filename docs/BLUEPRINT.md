@@ -1,6 +1,10 @@
-# Autonomous Vet — Engineering Blueprint
+# Signalment — Engineering Blueprint
 
-Version 1.0 · Source of truth for scope, architecture, and delivery gates.
+Version 1.1 · Source of truth for scope, architecture, and delivery gates.
+
+*Signalment: the species, breed, age and sex that open a veterinary record —
+written first because they change what everything after them means. Species is
+a hard retrieval filter in this system for the same reason.*
 
 ---
 
@@ -415,11 +419,11 @@ Do not start the next phase until the current one's gate passes.
 ### Phase 1 — Harness ✅ COMPLETE
 Schema, linter, chunking, BM25, species filter, RRF, metrics, gold loader,
 runner, report.
-**Exit:** `pytest` green, `vetrag eval` prints an ablation table. *(76 tests)*
+**Exit:** `pytest` green, `signalment eval` prints an ablation table. *(76 tests)*
 
 ### Phase 2 — Freshness and drift ✅ COMPLETE
-`vetrag stale --days N`; `vetrag drift`, also run automatically before every
-`vetrag eval` so a corrupted gold set is never read as a clean result.
+`signalment stale --days N`; `signalment drift`, also run automatically before every
+`signalment eval` so a corrupted gold set is never read as a clean result.
 **Exit:** adding a note that answers a previously-unanswerable gold item causes
 a visible warning rather than silent metric corruption. *(Verified: adding a
 cruciate-ligament note flags gold item q008, "top 24.71 >= 5.77 median".)*

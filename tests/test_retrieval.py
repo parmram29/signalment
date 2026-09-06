@@ -1,9 +1,9 @@
 import pytest
 
-from vetrag.corpus import chunk_corpus, load_corpus
-from vetrag.retrieval.base import Query, tokenize
-from vetrag.retrieval.bm25 import BM25Retriever
-from vetrag.retrieval.filters import FusionRetriever, SpeciesFilter
+from signalment.corpus import chunk_corpus, load_corpus
+from signalment.retrieval.base import Query, tokenize
+from signalment.retrieval.bm25 import BM25Retriever
+from signalment.retrieval.filters import FusionRetriever, SpeciesFilter
 
 
 @pytest.fixture(scope="module")
