@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vetrag"
+version = "0.1.0"
+description = "Evaluation-first RAG assistant over a structured veterinary note corpus"
+requires-python = ">=3.10"
+dependencies = ["PyYAML>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+# Deliberately not required by the core package: the eval harness must run
+# with no models installed, so the baseline is always reproducible.
+retrieval = ["sentence-transformers>=3.0", "faiss-cpu>=1.8"]
+
+[project.scripts]
+vetrag = "vetrag.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
