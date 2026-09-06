@@ -88,7 +88,7 @@ def main() -> int:
     print(header)
     print("|" + "|".join("-" * len(c) for c in header.split("|")[1:-1]) + "|")
 
-    baseline = None
+    timings: dict[str, tuple[float, float]] = {}
     for name in backends:
         _, build_best = time_it(lambda: make_retriever(chunks, backend=name), args.repeats)
         retriever = make_retriever(chunks, backend=name)
@@ -98,14 +98,24 @@ def main() -> int:
                 retriever.search(Query(text=text), args.k)
 
         search_median, _ = time_it(run_queries, args.repeats)
-        per_query = search_median / len(QUERIES)
-        baseline = baseline if baseline is not None else per_query
-        speedup = baseline / per_query if per_query else float("inf")
+        timings[name] = (build_best, search_median / len(QUERIES))
 
+    # Speedup is always relative to the Python reference, never to whichever
+    # backend happened to run first — otherwise the column reads backwards
+    # depending on iteration order.
+    baseline = timings.get("python", (0.0, 0.0))[1]
+
+    for name in backends:
+        build_best, per_query = timings[name]
+        if baseline and per_query:
+            speedup = f"{baseline / per_query:.1f}x"
+        else:
+            speedup = "--"
         print(f"| {name:<12} | {build_best * 1e3:>11.2f} | {per_query * 1e3:>12.3f} "
-              f"| {speedup:>7.1f}x |")
+              f"| {speedup:>8} |")
 
     print("\nsearch is per query, median of repeats; build is best of repeats.")
+    print("speedup is relative to the pure-Python reference implementation.")
     return 0
 
 

@@ -1,0 +1,80 @@
+# Cline rules — Signalment
+
+Read this before editing anything in this repository.
+
+## The one rule that matters
+
+**Never write, generate, edit, or delete files in `corpus/notes/` or
+`eval/gold/`.** Not one note. Not one gold question. Not even to "fix" a
+malformed one.
+
+Those two directories are the project's data, and their value comes entirely
+from a human having authored and verified them. Generated content there does not
+look like a bug: the linter may pass, the tests may pass, the metrics may
+improve — and every number the project reports becomes meaningless, because the
+system is then measuring whether it can retrieve text that was written to be
+retrieved.
+
+If a task seems to require adding notes or gold questions, **stop and say so**.
+Do not do it. That work belongs to the repository owner.
+
+This already happened once (commit `1e8df26`): 51 generated notes marked
+`confidence: verified` with unchecked clinical figures, plus 100 gold questions
+generated from those same notes. See `corpus/quarantine/README.md`.
+
+## Directories
+
+| Path | |
+|---|---|
+| `corpus/notes/` | **Never touch.** Human-authored data. |
+| `eval/gold/` | **Never touch.** Human-authored data. |
+| `corpus/quarantine/`, `eval/quarantine/` | **Never touch.** Parked content, promoted by hand only. |
+| `src/signalment/` | Edit freely. |
+| `crates/signalment_bm25/` | Edit freely. |
+| `tests/`, `benchmarks/` | Edit freely. |
+| `docs/`, `README.md` | Propose changes; the owner writes the prose. |
+
+## Before every commit
+
+```bash
+make check
+```
+
+Runs lint, the full test suite, and the gold-set drift check. **Do not commit if
+it fails.** If it fails and you cannot fix it, leave the work uncommitted and
+report what failed.
+
+For Rust changes also run:
+
+```bash
+make rust-test
+```
+
+## Commit messages
+
+Describe what the diff actually does. A commit touching 56 corpus files is not
+"Implement BM25 tokenizer in Rust". If a change spans unrelated areas, split it.
+
+## The Python BM25 is the specification
+
+`src/signalment/retrieval/bm25.py` is the reference implementation. The Rust
+crate must match it exactly — `tests/test_backend_equivalence.py` asserts
+identical rankings and scores to 1e-9.
+
+When they disagree, **the Rust is wrong**, unless you can show the Python is
+wrong and fix both together with a test that pins the corrected behaviour.
+
+Note the idf form, which is easy to get wrong:
+
+```
+idf(t) = max( ln(1 + (N - df + 0.5) / (df + 0.5)), 0 )
+```
+
+The `1 +` is load-bearing. Without it a term present in every document scores
+`ln(1) = 0` and queries silently return nothing.
+
+## Scope
+
+Do the task asked. Do not add dependencies, restructure directories, rename
+things, or "improve" adjacent files without being asked. If you think something
+else needs doing, say so and let the owner decide.

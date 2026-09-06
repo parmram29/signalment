@@ -38,9 +38,15 @@
 //! 1. **Repeated query terms count more than once.** The Python loops over the
 //!    token *list*, not a set, so `"cat cat"` scores a matching document twice
 //!    as high as `"cat"`. Do not deduplicate query terms.
-//! 2. **`idf` is floored at zero.** A term appearing in every document yields a
-//!    negative raw idf; clamping it to 0 means such a term contributes nothing
-//!    rather than *subtracting* score from documents that contain it.
+//! 2. **Use the `1 +` form of idf, and floor it at zero.** The `1 +` inside the
+//!    logarithm is not decoration: without it a term appearing in every
+//!    document scores `ln(1) = 0` and the whole query returns nothing. With it,
+//!    such a term still contributes a small positive amount (`ln(1.2)` for
+//!    `N = 2, df = 2`), which is what the Python reference does. The
+//!    `max(_, 0.0)` floor is therefore defensive rather than load-bearing here,
+//!    but keep it: it guards the classic Robertson/Sparck-Jones variant, which
+//!    can go negative, from silently subtracting score if anyone swaps the
+//!    formula later.
 //! 3. **An empty index must not divide by zero.** Python uses `avg_len or 1`,
 //!    substituting 1.0 when `avg_len` is 0.0.
 //! 4. **Deduplication keeps the maximum.** Several chunks share a note id; the
@@ -144,8 +150,8 @@ impl Bm25Index {
             let tokens = tokenize(text);
             let mut term_freq = HashMap::new();
 
-            for token in tokens {
-                *term_freq.entry(token).or_insert(0) += 1;
+            for token in &tokens {
+                *term_freq.entry(token.clone()).or_insert(0) += 1;
             }
 
             tf.push(term_freq);
@@ -170,7 +176,7 @@ impl Bm25Index {
         // Calculate IDF for each term
         let mut idf = HashMap::new();
         for (term, df) in doc_freq {
-            let raw_idf = ((n - df as f64 + 0.5) / (df as f64 + 0.5)).ln();
+            let raw_idf = (1.0 + (n - df as f64 + 0.5) / (df as f64 + 0.5)).ln();
             let idf_val = raw_idf.max(0.0); // Floor at 0.0 (pitfall 2)
             idf.insert(term, idf_val);
         }
@@ -213,7 +219,7 @@ impl Bm25Index {
                 let tf_val = *self.tf[doc_idx].get(token).unwrap_or(&0) as f64;
 
                 // Get the IDF for this term
-                let idf_val = *self.idf.get(token).copied().unwrap_or(0.0);
+                let idf_val = self.idf.get(token).copied().unwrap_or(0.0);
 
                 // Skip if IDF is 0 (term not in index or in all documents)
                 if idf_val == 0.0 {
@@ -354,11 +360,26 @@ mod tests {
         }
 
         #[test]
-        fn term_in_every_document_contributes_nothing() {
-            // idf floored at zero: "cat" is in both, so it cannot separate them
-            // and must not drag either score negative.
+        fn ubiquitous_term_scores_low_but_not_zero() {
+            // Verified against the Python reference: with the `1 +` form, a term
+            // in every document has idf ln(1.2) = 0.1823, so it still matches
+            // both documents equally rather than dropping out. Asserting it
+            // returns nothing would be the classic-variant behaviour, which is
+            // not what this crate implements.
             let idx = index(&[("cat insulin", "n1"), ("cat permethrin", "n2")]);
-            assert!(idx.search("cat", 5).is_empty());
+            let hits = idx.search("cat", 5);
+            assert_eq!(hits.len(), 2);
+            assert!((hits[0].score - hits[1].score).abs() < 1e-9, "equal evidence, equal score");
+            assert!((hits[0].score - 0.1823).abs() < 1e-3, "got {}", hits[0].score);
+        }
+
+        #[test]
+        fn rarer_term_outranks_commoner_one() {
+            // What idf is actually for: "insulin" appears once, "cat" in both,
+            // so a document matching the rare term must rank higher.
+            let idx = index(&[("cat insulin", "n1"), ("cat permethrin", "n2")]);
+            let hits = idx.search("insulin cat", 5);
+            assert_eq!(hits[0].note_id, "n1");
         }
 
         #[test]

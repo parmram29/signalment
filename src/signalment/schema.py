@@ -15,7 +15,8 @@ from datetime import date
 # characteristic hazard is a canine answer returned for a feline question:
 # the two are near-identical semantically and can differ lethally in dosing.
 SPECIES = {"canine", "feline", "equine", "bovine", "ovine", "caprine",
-           "porcine", "avian", "lagomorph", "rodent", "reptile", "multi"}
+           "porcine", "avian", "lagomorph", "rabbit", "ferret", "rodent",
+           "reptile", "multi"}
 
 NOTE_TYPES = {"definition", "mechanism", "differential", "protocol", "dosage", "case"}
 
@@ -23,7 +24,14 @@ NOTE_TYPES = {"definition", "mechanism", "differential", "protocol", "dosage", "
 # but a medical assistant must be able to rank and filter by review state.
 CONFIDENCE = {"draft", "reviewed", "verified"}
 
-PROVENANCE = {"self-authored", "lecture", "textbook", "guideline", "primary-literature"}
+PROVENANCE = {"self-authored", "lecture", "textbook", "guideline",
+              "primary-literature", "ai-drafted"}
+
+# Content a model wrote. It may be a useful starting point, but "verified" is a
+# claim that a human checked it against a source, and a model cannot make that
+# claim on its own behalf. Promoting an ai-drafted note is a deliberate human
+# act: read it, check the citation, then change this field.
+UNVERIFIABLE_PROVENANCE = frozenset({"ai-drafted"})
 
 ID_PATTERN = re.compile(r"^vet-[a-z0-9]+-\d{4}$")
 
@@ -118,6 +126,16 @@ def validate(meta: dict, body: str = "", path: str = "") -> Note:
     # must not reach a student unmarked, so the linter blocks it at ingestion.
     if meta["note_type"] in {"dosage", "protocol"} and meta["confidence"] == "draft":
         errors.append(f"note_type {meta['note_type']!r} may not be confidence 'draft'")
+
+    # "verified" means a person checked this against its source. Generated
+    # content cannot assert that about itself, and a corpus that lets it is no
+    # longer a corpus of things known to be true.
+    if meta["provenance"] in UNVERIFIABLE_PROVENANCE and meta["confidence"] == "verified":
+        errors.append(
+            f"provenance {meta['provenance']!r} may not be confidence 'verified': "
+            f"verification is a human act. Read it, check the source, then set "
+            f"provenance to what you actually confirmed."
+        )
 
     try:
         authored = _as_date(meta["authored"], "authored")

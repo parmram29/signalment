@@ -53,6 +53,24 @@ class TestParsing:
         with pytest.raises(ValidationError, match="may not be confidence 'draft'"):
             parse_note(text)
 
+    def test_ai_drafted_note_may_not_be_verified(self):
+        # "verified" asserts that a person checked the content against its
+        # source. Generated content cannot make that claim about itself.
+        text = VALID.replace("provenance: self-authored", "provenance: ai-drafted")
+        with pytest.raises(ValidationError, match="verification is a human act"):
+            parse_note(text)
+
+    def test_ai_drafted_note_is_fine_when_marked_honestly(self):
+        text = (VALID.replace("provenance: self-authored", "provenance: ai-drafted")
+                     .replace("confidence: verified", "confidence: draft"))
+        assert parse_note(text).provenance == "ai-drafted"
+
+    def test_accepts_rabbit_and_ferret(self):
+        # Real veterinary species; their absence was a gap in the vocabulary,
+        # not a deliberate exclusion.
+        for species in ("rabbit", "ferret"):
+            assert parse_note(VALID.replace("[feline]", f"[{species}]")).species == (species,)
+
     def test_all_errors_reported_together(self):
         text = VALID.replace("vet-test-0001", "bad").replace("[feline]", "[griffin]")
         with pytest.raises(ValidationError) as exc:
