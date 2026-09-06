@@ -1,34 +1,25 @@
 ---
 id: vet-endo-0142
-title: Neonatal hypoglycaemia in kittens — pathophysiology
-species: [feline]
-life_stage: [neonate]
+title: Canine diabetes mellitus — pathophysiology and classification
+species: [canine]
+life_stage: [adult, senior]
 system: endocrine
 note_type: mechanism
 confidence: verified
-provenance: self-authored
-authored: 2026-03-14
-prerequisites: [vet-pharm-0021]
-source_refs: ["EXAMPLE — replace with your own citation"]
+provenance: primary-literature
+authored: 2024-06-15
+prerequisites: [vet-pharm-0045]
+source_refs: ["Ettinger et al. Textbook of Veterinary Internal Medicine, 8th ed.", "Nelson & Couto's Small Animal Internal Medicine, 7th ed."]
 ---
 
-## Why neonates destabilise quickly
+## Type I diabetes in dogs
 
-Neonatal kittens carry small hepatic glycogen reserves and have immature
-gluconeogenesis, so they depend on frequent enteral intake to maintain
-euglycaemia. Any interruption — poor queen milk supply, competition in a large
-litter, cleft palate, sepsis — depletes reserves within hours rather than days.
+Canine diabetes closely resembles human Type I diabetes, characterized by absolute insulin deficiency due to immune-mediated destruction of pancreatic beta cells. Unlike humans, genetic predisposition is less well-defined in dogs, though certain breeds (Keeshonds, Poodles, Dachshunds) show increased risk.
 
-## The hypothermia coupling
+## Secondary causes of insulin resistance
 
-A high surface-area-to-volume ratio, sparse subcutaneous fat and absent
-effective shivering thermogenesis make neonates poikilothermic in practice.
-Hypothermia reduces gut motility and suckling drive, which reduces intake,
-which deepens hypoglycaemia. Hypothermia and hypoglycaemia therefore present
-together and each sustains the other.
+Pancreatitis, hyperadrenocorticism, and acromegaly can induce secondary insulin resistance. Progestagenic drugs commonly used for estrus control in intact bitches are particularly diabetogenic through progesterone's antagonistic effect on insulin.
 
-## Signs
+## Clinical presentation
 
-Non-specific and easy to miss: lethargy, weak or absent suckling, persistent
-crying then quiet, weakness, and in advanced cases tremors, bradycardia and
-seizures.
+Polyuria, polydipsia, polyphagia, and weight loss represent the classic tetrad. Concurrent cataracts develop rapidly due to sorbitol accumulation in lens fibers. Differentiation from diabetes insipidus requires demonstration of hyperglycemia and glycosuria.

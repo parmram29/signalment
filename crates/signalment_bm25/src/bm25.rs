@@ -91,19 +91,30 @@ pub struct Bm25Index {
 /// the tokens a dense retriever handles worst, so the lexical side must not
 /// destroy them.
 pub fn tokenize(text: &str) -> Vec<String> {
-    // TODO(you): implement.
-    //
-    // 1. Lowercase the input.
-    // 2. Walk the characters. When you see an ASCII alphanumeric and are not
-    //    already inside a token, start one.
-    // 3. While inside a token, accept ASCII alphanumeric, '-' and '\''.
-    // 4. Any other character ends the current token.
-    // 5. Do not forget the token still open when the input ends.
-    //
-    // Watch the trailing separator case: "5-1 " and "5-1" must tokenize the
-    // same. The unit tests below cover it.
-    let _ = text;
-    todo!("tokenize")
+    let mut tokens = Vec::new();
+    let mut current_token = String::new();
+    let mut chars = text.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch.is_ascii_alphanumeric() {
+            current_token.push(ch.to_ascii_lowercase());
+        } else if ch == '-' || ch == '\'' {
+            if !current_token.is_empty() {
+                current_token.push(ch);
+            }
+        } else {
+            if !current_token.is_empty() {
+                tokens.push(current_token);
+                current_token = String::new();
+            }
+        }
+    }
+
+    if !current_token.is_empty() {
+        tokens.push(current_token);
+    }
+
+    tokens
 }
 
 impl Bm25Index {
@@ -122,23 +133,58 @@ impl Bm25Index {
         debug_assert_eq!(texts.len(), note_ids.len());
         debug_assert_eq!(texts.len(), chunk_ids.len());
 
-        // TODO(you): implement.
-        //
-        // 1. Tokenize every text once. Do not keep the token vectors around
-        //    afterwards — only `tf` and `lengths` are needed at search time,
-        //    and holding the raw tokens roughly doubles the index's memory.
-        // 2. Build `tf`: a HashMap<String, u32> of term -> count per document.
-        // 3. Build `lengths`: total token count per document (with duplicates).
-        // 4. `avg_len` = mean of `lengths`, or 0.0 when there are no documents.
-        // 5. Build document frequency: for each document, count each *distinct*
-        //    term once. A HashMap<String, u32> accumulated over
-        //    `tf[i].keys()` is the straightforward way.
-        // 6. Convert document frequency to `idf` with the formula in the module
-        //    docs, clamping negatives to 0.0 (see pitfall 2).
-        //
-        // `f64::ln` is the natural log. `n` is the document count as f64.
-        let _ = (texts, &note_ids, &chunk_ids, k1, b);
-        todo!("Bm25Index::new")
+        let n = texts.len() as f64;
+
+        // Initialize data structures
+        let mut tf = Vec::new();
+        let mut lengths = Vec::new();
+
+        // Process each document
+        for text in texts {
+            let tokens = tokenize(text);
+            let mut term_freq = HashMap::new();
+
+            for token in tokens {
+                *term_freq.entry(token).or_insert(0) += 1;
+            }
+
+            tf.push(term_freq);
+            lengths.push(tokens.len());
+        }
+
+        // Calculate average length
+        let avg_len = if !lengths.is_empty() {
+            lengths.iter().sum::<usize>() as f64 / lengths.len() as f64
+        } else {
+            0.0
+        };
+
+        // Calculate document frequency for each term
+        let mut doc_freq: HashMap<String, u32> = HashMap::new();
+        for doc_tf in &tf {
+            for term in doc_tf.keys() {
+                *doc_freq.entry(term.clone()).or_insert(0) += 1;
+            }
+        }
+
+        // Calculate IDF for each term
+        let mut idf = HashMap::new();
+        for (term, df) in doc_freq {
+            let raw_idf = ((n - df as f64 + 0.5) / (df as f64 + 0.5)).ln();
+            let idf_val = raw_idf.max(0.0); // Floor at 0.0 (pitfall 2)
+            idf.insert(term, idf_val);
+        }
+
+        Bm25Index {
+            note_ids,
+            chunk_ids,
+            tf,
+            lengths,
+            avg_len,
+            idf,
+            k1,
+            b,
+        }
     }
 
     /// Score `query` against every document, returning at most `k` hits,
@@ -147,23 +193,78 @@ impl Bm25Index {
     /// Documents scoring zero are omitted entirely — a non-match is not a
     /// result with a low score, it is not a result.
     pub fn search(&self, query: &str, k: usize) -> Vec<Hit> {
-        // TODO(you): implement.
-        //
-        // 1. Tokenize the query. Keep duplicates (see pitfall 1).
-        // 2. For each document i, accumulate the per-term score from the module
-        //    docs. Skip terms absent from that document's `tf`. Use
-        //    `self.idf.get(term).copied().unwrap_or(0.0)` for a term that was
-        //    never indexed.
-        // 3. Substitute 1.0 for `avg_len` when it is 0.0 (see pitfall 3).
-        // 4. Collect only documents with score > 0.0.
-        // 5. Deduplicate by `note_id`, keeping the highest-scoring chunk and
-        //    that chunk's id (see pitfall 4).
-        // 6. Sort by score descending, breaking ties by `note_id` ascending so
-        //    the output is deterministic across runs. `f64` is not `Ord`, so
-        //    reach for `sort_by` with `partial_cmp`, not `sort`.
-        // 7. Truncate to `k`.
-        let _ = (query, k);
-        todo!("Bm25Index::search")
+        let query_tokens = tokenize(query);
+        if query_tokens.is_empty() {
+            return vec![];
+        }
+
+        // Use 1.0 for avg_len when it is 0.0 (pitfall 3)
+        let avg_len = if self.avg_len == 0.0 { 1.0 } else { self.avg_len };
+
+        // Map to store scores for each document
+        let mut doc_scores: Vec<(usize, f64)> = Vec::new();
+
+        for (doc_idx, _) in self.note_ids.iter().enumerate() {
+            let mut score = 0.0;
+
+            // For each query token, calculate its contribution to the score
+            for token in &query_tokens {
+                // Get the term frequency in this document
+                let tf_val = *self.tf[doc_idx].get(token).unwrap_or(&0) as f64;
+
+                // Get the IDF for this term
+                let idf_val = *self.idf.get(token).copied().unwrap_or(0.0);
+
+                // Skip if IDF is 0 (term not in index or in all documents)
+                if idf_val == 0.0 {
+                    continue;
+                }
+
+                // Calculate the score for this term in this document
+                let numerator = tf_val * (self.k1 + 1.0);
+                let denominator = tf_val + self.k1 * (1.0 - self.b + self.b * (self.lengths[doc_idx] as f64) / avg_len);
+
+                score += idf_val * (numerator / denominator);
+            }
+
+            // Only add documents with positive scores
+            if score > 0.0 {
+                doc_scores.push((doc_idx, score));
+            }
+        }
+
+        // Group by note_id, keeping the highest-scoring chunk for each note (pitfall 4)
+        let mut note_scores: HashMap<&String, (f64, usize)> = HashMap::new();
+        for (doc_idx, doc_score) in doc_scores {
+            let note_id = &self.note_ids[doc_idx];
+            let entry = note_scores.entry(note_id).or_insert((0.0, doc_idx));
+
+            // Update if this chunk has a higher score
+            if doc_score > entry.0 {
+                *entry = (doc_score, doc_idx);
+            }
+        }
+
+        // Convert to hits
+        let mut hits: Vec<Hit> = note_scores
+            .into_iter()
+            .map(|(note_id, (score, doc_idx))| Hit {
+                note_id: note_id.clone(),
+                score,
+                chunk_id: self.chunk_ids[doc_idx].clone(),
+            })
+            .collect();
+
+        // Sort by score descending, then by note_id ascending to ensure determinism
+        hits.sort_by(|a, b| {
+            b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| a.note_id.cmp(&b.note_id))
+        });
+
+        // Truncate to k results
+        hits.truncate(k);
+
+        hits
     }
 
     /// Number of indexed chunks.

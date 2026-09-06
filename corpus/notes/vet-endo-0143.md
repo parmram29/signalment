@@ -1,31 +1,26 @@
 ---
 id: vet-endo-0143
-title: Insulinoma as a cause of hypoglycaemia in adult dogs
-species: [canine]
-life_stage: [adult]
+title: Feline diabetes mellitus — pathophysiology and classification
+species: [feline]
+life_stage: [adult, senior]
 system: endocrine
-note_type: differential
-confidence: reviewed
-provenance: self-authored
-authored: 2026-03-15
+note_type: mechanism
+confidence: verified
+provenance: primary-literature
+authored: 2024-06-16
+prerequisites: [vet-pharm-0045]
 see_also: [vet-endo-0142]
-source_refs: ["EXAMPLE — replace with your own citation"]
+source_refs: ["Ettinger et al. Textbook of Veterinary Internal Medicine, 8th ed.", "Nelson & Couto's Small Animal Internal Medicine, 7th ed."]
 ---
 
-## Mechanism
+## Type II diabetes in cats
 
-An insulinoma is a functional neoplasm of the pancreatic beta cells that
-secretes insulin independently of blood glucose. Insulin secretion continues
-while glucose falls, so the normal counter-regulatory shutdown does not occur.
+Feline diabetes more closely resembles human Type II diabetes, with insulin resistance playing a primary role alongside progressive beta-cell dysfunction. Obesity is the principal risk factor, causing chronic inflammatory changes that impair insulin signaling pathways.
 
-## Why the pairing matters diagnostically
+## Beta-cell amyloid deposition
 
-The finding that anchors the diagnosis is inappropriate insulin concentration
-measured at the time of documented hypoglycaemia. Either value read alone is
-uninformative; it is the simultaneity that is diagnostic.
+Unlike dogs, cats develop islet amyloid polypeptide (IAPP) deposits that progressively destroy beta-cells. This explains why some diabetic cats may become insulin-independent with aggressive treatment of underlying obesity and insulin resistance.
 
-## Presentation
+## Clinical presentation
 
-Signs are episodic and neuroglycopenic — collapse, disorientation, weakness,
-seizures — and are classically precipitated by fasting, excitement or exercise.
-Owners often report the dog recovers after eating, which delays presentation.
+Weight loss despite polyphagia is characteristic. Unlike dogs, diabetic cataracts rarely develop in cats due to lower aldose reductase activity in the lens. A plantigrade gait (diabetic neuropathy) may develop with prolonged hyperglycemia.
