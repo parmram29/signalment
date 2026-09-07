@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+#
+# Blocks the one mistake that does not look like a mistake: an assistant
+# writing into the human-authored data directories. Rules files are advisory —
+# an agent can read them and proceed anyway. This is not advisory.
+#
+# Install:  make hooks
+# Bypass:   SIGNALMENT_HUMAN_EDIT=1 git commit ...   (for your own note edits)
+
+set -uo pipefail
+
+PROTECTED='^(corpus/notes/|eval/gold/)'
+staged="$(git diff --cached --name-only --diff-filter=ACMR)"
+data="$(printf '%s\n' "$staged" | grep -E "$PROTECTED" | grep -v '/README\.md$' || true)"
+
+if [ -n "$data" ] && [ "${SIGNALMENT_HUMAN_EDIT:-}" != "1" ]; then
+  cat >&2 <<MSG
+
+  BLOCKED: this commit writes to human-authored data.
+
+$(printf '    %s\n' $data)
+
+  corpus/notes/ and eval/gold/ hold notes you wrote and questions you asked.
+  Their whole value is that a person authored and verified them. Generated
+  content there does not look like a bug — lint can pass, tests can pass,
+  metrics can improve — while every number this project reports quietly stops
+  meaning anything, because the system ends up measuring whether it can
+  retrieve text written to be retrieved.
+
+  If YOU wrote these, this is the wrong guard and you should say so:
+
+      SIGNALMENT_HUMAN_EDIT=1 git commit ...
+
+  If an assistant wrote them, unstage them:
+
+      git restore --staged $(printf '%s ' $data)
+
+MSG
+  exit 1
+fi
+
+# Corpus validity, when the toolchain is available. A missing interpreter is a
+# setup problem, not a reason to block a commit, so that case warns and passes.
+if printf '%s\n' "$staged" | grep -qE '^(corpus/|src/)'; then
+  if PYTHONPATH=src python3 -c "import signalment" >/dev/null 2>&1; then
+    if ! PYTHONPATH=src python3 -m signalment lint >/dev/null 2>&1; then
+      echo >&2
+      echo "  BLOCKED: corpus/notes/ has invalid front-matter. Run: make lint" >&2
+      echo >&2
+      exit 1
+    fi
+  else
+    echo "  note: signalment not importable, skipping lint (activate .venv?)" >&2
+  fi
+fi
+
+exit 0

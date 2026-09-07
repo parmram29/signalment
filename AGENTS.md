@@ -20,6 +20,19 @@ work belongs to the repository owner.
 
 Happened once already, commit `1e8df26`. See `corpus/quarantine/README.md`.
 
+## This is enforced, not requested
+
+`.githooks/pre-commit` refuses any commit that stages a file under
+`corpus/notes/` or `eval/gold/`. Install it with `make hooks`. A human editing
+their own notes bypasses it deliberately:
+
+```bash
+SIGNALMENT_HUMAN_EDIT=1 git commit -m "..."
+```
+
+See `docs/agent-setup.md` for per-assistant setup, including the system prompt
+to paste into a chat client that cannot read this file.
+
 ## Before every commit
 
 ```bash
