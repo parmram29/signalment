@@ -99,9 +99,7 @@ pub struct Bm25Index {
 pub fn tokenize(text: &str) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut current_token = String::new();
-    let mut chars = text.chars().peekable();
-
-    while let Some(ch) = chars.next() {
+    for ch in text.chars() {
         if ch.is_ascii_alphanumeric() {
             current_token.push(ch.to_ascii_lowercase());
         } else if ch == '-' || ch == '\'' {
@@ -205,7 +203,11 @@ impl Bm25Index {
         }
 
         // Use 1.0 for avg_len when it is 0.0 (pitfall 3)
-        let avg_len = if self.avg_len == 0.0 { 1.0 } else { self.avg_len };
+        let avg_len = if self.avg_len == 0.0 {
+            1.0
+        } else {
+            self.avg_len
+        };
 
         // Map to store scores for each document
         let mut doc_scores: Vec<(usize, f64)> = Vec::new();
@@ -228,7 +230,8 @@ impl Bm25Index {
 
                 // Calculate the score for this term in this document
                 let numerator = tf_val * (self.k1 + 1.0);
-                let denominator = tf_val + self.k1 * (1.0 - self.b + self.b * (self.lengths[doc_idx] as f64) / avg_len);
+                let denominator = tf_val
+                    + self.k1 * (1.0 - self.b + self.b * (self.lengths[doc_idx] as f64) / avg_len);
 
                 score += idf_val * (numerator / denominator);
             }
@@ -263,7 +266,9 @@ impl Bm25Index {
 
         // Sort by score descending, then by note_id ascending to ensure determinism
         hits.sort_by(|a, b| {
-            b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal)
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
                 .then_with(|| a.note_id.cmp(&b.note_id))
         });
 
@@ -300,7 +305,10 @@ mod tests {
 
         #[test]
         fn lowercases() {
-            assert_eq!(tokenize("Permethrin TOXICOSIS"), ["permethrin", "toxicosis"]);
+            assert_eq!(
+                tokenize("Permethrin TOXICOSIS"),
+                ["permethrin", "toxicosis"]
+            );
         }
 
         #[test]
@@ -346,7 +354,10 @@ mod tests {
 
         #[test]
         fn finds_the_matching_document() {
-            let idx = index(&[("permethrin sodium channels", "n1"), ("insulin glucose", "n2")]);
+            let idx = index(&[
+                ("permethrin sodium channels", "n1"),
+                ("insulin glucose", "n2"),
+            ]);
             let hits = idx.search("permethrin", 5);
             assert_eq!(hits.len(), 1);
             assert_eq!(hits[0].note_id, "n1");
@@ -369,8 +380,15 @@ mod tests {
             let idx = index(&[("cat insulin", "n1"), ("cat permethrin", "n2")]);
             let hits = idx.search("cat", 5);
             assert_eq!(hits.len(), 2);
-            assert!((hits[0].score - hits[1].score).abs() < 1e-9, "equal evidence, equal score");
-            assert!((hits[0].score - 0.1823).abs() < 1e-3, "got {}", hits[0].score);
+            assert!(
+                (hits[0].score - hits[1].score).abs() < 1e-9,
+                "equal evidence, equal score"
+            );
+            assert!(
+                (hits[0].score - 0.1823).abs() < 1e-3,
+                "got {}",
+                hits[0].score
+            );
         }
 
         #[test]
@@ -440,7 +458,10 @@ mod tests {
         fn shorter_document_outranks_longer_one_for_the_same_term() {
             // Length normalisation, the `b` parameter, is what does this.
             let padding = "filler ".repeat(60);
-            let idx = index(&[("permethrin", "n1"), (&format!("permethrin {padding}"), "n2")]);
+            let idx = index(&[
+                ("permethrin", "n1"),
+                (&format!("permethrin {padding}"), "n2"),
+            ]);
             let hits = idx.search("permethrin", 5);
             assert_eq!(hits[0].note_id, "n1");
         }
