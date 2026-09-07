@@ -67,6 +67,8 @@ def main() -> int:
                         help="replicate the corpus this many times")
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("-k", type=int, default=5)
+    parser.add_argument("--backends", nargs="+", default=None,
+                        help="restrict to these backends (default: all available)")
     args = parser.parse_args()
 
     notes, errors = load_corpus(args.corpus)
@@ -75,7 +77,7 @@ def main() -> int:
         return 1
 
     chunks = scale_corpus(chunk_corpus(notes), args.scale)
-    backends = available_backends()
+    backends = available_backends() if args.backends is None else args.backends
 
     print(f"machine: {platform.machine()} · {platform.system()} {platform.release()} "
           f"· python {sys.version_info.major}.{sys.version_info.minor}")

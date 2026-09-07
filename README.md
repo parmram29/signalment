@@ -117,8 +117,9 @@ src/signalment/
   retrieval/           BM25 baseline, species filter, RRF fusion, dense stub
   evaluation/          Metrics, gold-set loader, runner, ablation report
 crates/signalment_bm25/    Optional Rust BM25 accelerator (Cargo)
+                       retrieval/fts.py — SQLite FTS5, independent implementation
 benchmarks/            Backend timing harness
-tests/                 76 tests, no network, no models
+tests/                 152 tests, no network, no models
 docs/                  Note schema and evaluation methodology
 ```
 
@@ -149,7 +150,7 @@ threshold for "answers too strongly" is the median top score of the answerable
 items, so it self-calibrates instead of decaying into a meaningless constant as
 the corpus grows.
 
-**Two BM25 implementations, one interface.** `src/signalment/retrieval/bm25.py` is
+**Three BM25 implementations, one interface.** `src/signalment/retrieval/bm25.py` is
 the reference and is never removed; `crates/signalment_bm25` is an optional Rust
 accelerator selected at runtime by `retrieval/backends.py`. A clone with no Rust
 toolchain runs everything — the differential suite simply skips. This is the
@@ -157,6 +158,16 @@ pattern `orjson` and `numpy` use: an accelerated path when available, a correct
 path always. `tests/test_backend_equivalence.py` asserts identical rankings,
 identical chunk attribution, and scores agreeing to 1e-9, so the Python file is
 the specification the crate is written against.
+
+A third backend, `retrieval/fts.py`, wraps SQLite's FTS5. It is a different
+*kind* of thing: not an accelerator but an independent implementation, written
+by other people with its own tokenizer and its own BM25 constants
+(`k1 = 1.2` against our `1.5`). Demanding identical ranking from it would be a
+category error, so it is held to a different bar — competitiveness on the gold
+set rather than equality — and appears as its own ablation row. A third opinion
+agreeing on which notes answer a question is the cheapest evidence available
+that the reference implementation is not quietly wrong. It needs no new
+dependency; FTS5 ships with CPython's SQLite.
 
 **No fine-tuning.** For injecting knowledge, retrieval outperforms unsupervised
 fine-tuning; fine-tuning teaches form, not facts. It is out of scope until a

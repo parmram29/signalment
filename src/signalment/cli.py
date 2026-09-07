@@ -13,6 +13,7 @@ from .evaluation.drift import check_drift, format_warnings
 from .evaluation.report import markdown_table
 from .evaluation.runner import evaluate
 from .freshness import stale_notes
+from .retrieval.backends import available_backends, make_retriever
 from .retrieval.bm25 import BM25Retriever
 from .retrieval.filters import SpeciesFilter
 
@@ -41,6 +42,15 @@ def cmd_eval(args) -> int:
     # Each configuration isolates one change from the row above it, so any
     # difference in the table is attributable to that change alone.
     configs = [bm25, SpeciesFilter(bm25, notes)]
+
+    # SQLite is an independent implementation rather than an accelerator, so it
+    # appears as its own row for comparison, not as a substitute for the
+    # reference. The Rust backend is deliberately absent: it is asserted
+    # identical to the reference by the differential suite, so a row for it
+    # would duplicate the one above.
+    if "sqlite" in available_backends():
+        sqlite = make_retriever(chunks, backend="sqlite")
+        configs += [sqlite, SpeciesFilter(sqlite, notes)]
 
     results = [
         evaluate(r, gold, k=args.k, abstain_threshold=args.abstain_threshold)

@@ -14,9 +14,16 @@ from __future__ import annotations
 from ..corpus import Chunk
 from .base import Hit, Query
 from .bm25 import BM25Retriever
+from .fts import FTS5Retriever, fts5_available
 
 #: Backends in preference order for `backend="auto"`.
+#: sqlite is not in the auto path: it is an independent implementation with its
+#: own BM25 constants, not a drop-in accelerator, so it is only ever selected
+#: deliberately.
 PREFERENCE = ("rust", "python")
+
+#: Every backend that can be requested by name.
+ALL = ("python", "rust", "sqlite")
 
 
 def rust_available() -> bool:
@@ -29,7 +36,9 @@ def rust_available() -> bool:
 
 
 def available_backends() -> tuple[str, ...]:
-    return tuple(name for name in PREFERENCE if name != "rust" or rust_available())
+    """Backends that can actually be constructed on this machine."""
+    checks = {"rust": rust_available, "sqlite": fts5_available}
+    return tuple(name for name in ALL if checks.get(name, lambda: True)())
 
 
 class RustBM25Retriever:
@@ -82,6 +91,8 @@ def make_retriever(
 
     if backend == "python":
         return BM25Retriever(chunks, k1=k1, b=b)
+    if backend == "sqlite":
+        return FTS5Retriever(chunks)
     if backend == "rust":
         if not rust_available():
             raise RuntimeError(
@@ -91,4 +102,4 @@ def make_retriever(
             )
         return RustBM25Retriever(chunks, k1=k1, b=b)
 
-    raise ValueError(f"unknown backend {backend!r}; expected one of {PREFERENCE + ('auto',)}")
+    raise ValueError(f"unknown backend {backend!r}; expected one of {ALL + ('auto',)}")
