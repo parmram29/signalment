@@ -19,6 +19,10 @@ jobs:
       - run: pip install -e ".[dev]"
       - name: Lint corpus
         run: python -m signalment lint
+      - name: Python style
+        run: |
+          python -m ruff check src tests benchmarks
+          python -m ruff format --check src tests benchmarks
       - name: Tests
         run: pytest -q
       - name: Gold-set drift

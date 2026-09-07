@@ -48,7 +48,9 @@ def load_corpus(root: str | Path) -> tuple[list[Note], list[tuple[str, str]]]:
     seen: dict[str, str] = {}
     for note in notes:
         if note.id in seen:
-            errors.append((note.path, f"duplicate id {note.id!r}, first seen in {seen[note.id]}"))
+            errors.append(
+                (note.path, f"duplicate id {note.id!r}, first seen in {seen[note.id]}")
+            )
         seen[note.id] = note.path
     return notes, errors
 
@@ -61,10 +63,6 @@ class Chunk:
     note_id: str
     text: str
     heading: str = ""
-
-    @property
-    def indexed_text(self) -> str:
-        return self.text
 
 
 def chunk_note(note: Note, max_tokens: int = 300, overlap: int = 50) -> list[Chunk]:

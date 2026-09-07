@@ -109,8 +109,12 @@ class TestCompetitiveness:
         # Independent implementations disagreeing about the single best answer
         # on unambiguous queries would mean one of them is wrong.
         python, sqlite = BM25Retriever(chunks), FTS5Retriever(chunks)
-        for text in ("permethrin sodium channels",
-                     "neonatal kitten glycogen reserves",
-                     "insulinoma episodic collapse"):
+        for text in (
+            "permethrin sodium channels",
+            "neonatal kitten glycogen reserves",
+            "insulinoma episodic collapse",
+        ):
             query = Query(text)
-            assert sqlite.search(query, 1)[0].note_id == python.search(query, 1)[0].note_id, text
+            assert sqlite.search(query, 1)[0].note_id == python.search(query, 1)[0].note_id, (
+                text
+            )

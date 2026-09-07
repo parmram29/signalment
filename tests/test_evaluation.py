@@ -30,17 +30,31 @@ class TestGoldLoading:
 
     def test_rejects_gold_set_with_no_unanswerable_items(self, tmp_path):
         path = tmp_path / "g.jsonl"
-        path.write_text(json.dumps(
-            {"qid": "q1", "question": "?", "answerable": True, "relevant_note_ids": ["vet-a-0001"]}
-        ))
+        path.write_text(
+            json.dumps(
+                {
+                    "qid": "q1",
+                    "question": "?",
+                    "answerable": True,
+                    "relevant_note_ids": ["vet-a-0001"],
+                }
+            )
+        )
         with pytest.raises(ValueError, match="Abstention cannot be measured"):
             load_gold(path)
 
     def test_rejects_dangling_note_reference(self, tmp_path):
         path = tmp_path / "g.jsonl"
         path.write_text(
-            json.dumps({"qid": "q1", "question": "?", "answerable": True,
-                        "relevant_note_ids": ["vet-ghost-0001"]}) + "\n"
+            json.dumps(
+                {
+                    "qid": "q1",
+                    "question": "?",
+                    "answerable": True,
+                    "relevant_note_ids": ["vet-ghost-0001"],
+                }
+            )
+            + "\n"
             + json.dumps({"qid": "q2", "question": "?", "answerable": False})
         )
         with pytest.raises(ValueError, match="unknown notes"):
@@ -89,8 +103,7 @@ class TestRunner:
 
     def test_high_threshold_forces_abstention(self, notes):
         gold = load_gold(GOLD_PATH, known_note_ids={n.id for n in notes})
-        result = evaluate(BM25Retriever(chunk_corpus(notes)), gold, k=5,
-                          abstain_threshold=1e9)
+        result = evaluate(BM25Retriever(chunk_corpus(notes)), gold, k=5, abstain_threshold=1e9)
         assert result.abstention["false_refusal_rate"] == 1.0
         assert all(row["abstained"] for row in result.per_query)
 

@@ -42,6 +42,8 @@ def markdown_table(results: list[RunResult]) -> str:
     ]
     for row in rows:
         lines.append(
-            "| " + " | ".join(fmt.format(row[k]).ljust(widths[k]) for k, _, fmt in COLUMNS) + " |"
+            "| "
+            + " | ".join(fmt.format(row[k]).ljust(widths[k]) for k, _, fmt in COLUMNS)
+            + " |"
         )
     return "\n".join(lines)

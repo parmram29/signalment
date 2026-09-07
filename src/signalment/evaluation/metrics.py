@@ -11,6 +11,10 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable, Sequence
 
+# Re-exported: rank fusion is a retrieval operation and lives there now, but it
+# is scored alongside these metrics often enough that the old name still works.
+from ..retrieval.fusion import reciprocal_rank_fusion  # noqa: F401
+
 
 def _dedup(ranked: Sequence[str]) -> list[str]:
     """Keep first occurrence only; a repeated id must not be counted twice."""
@@ -68,44 +72,18 @@ def ndcg_at_k(
     if k <= 0:
         raise ValueError("k must be positive")
     gains = (
-        dict(relevant)
-        if isinstance(relevant, dict)
-        else {doc_id: 1.0 for doc_id in relevant}
+        dict(relevant) if isinstance(relevant, dict) else {doc_id: 1.0 for doc_id in relevant}
     )
     if not gains:
         raise ValueError("ndcg_at_k is undefined with no relevant documents")
 
     top = _dedup(ranked)[:k]
-    dcg = sum(gains.get(doc_id, 0.0) / math.log2(i + 1) for i, doc_id in enumerate(top, start=1))
+    dcg = sum(
+        gains.get(doc_id, 0.0) / math.log2(i + 1) for i, doc_id in enumerate(top, start=1)
+    )
     ideal = sorted(gains.values(), reverse=True)[:k]
     idcg = sum(gain / math.log2(i + 1) for i, gain in enumerate(ideal, start=1))
     return dcg / idcg if idcg else 0.0
-
-
-def reciprocal_rank_fusion(
-    rankings: Sequence[Sequence[str]],
-    k: int = 60,
-    weights: Sequence[float] | None = None,
-) -> list[str]:
-    """Fuse several ranked lists into one (Cormack et al., SIGIR 2009).
-
-    Score is sum over lists of w / (k + rank). The constant k damps the
-    influence of top ranks so a single confident-but-wrong ranker cannot
-    dominate the fusion. This is how BM25 and dense results are combined.
-    """
-    if k <= 0:
-        raise ValueError("k must be positive")
-    if weights is None:
-        weights = [1.0] * len(rankings)
-    if len(weights) != len(rankings):
-        raise ValueError("weights must be the same length as rankings")
-
-    scores: dict[str, float] = {}
-    for ranking, weight in zip(rankings, weights):
-        for rank, doc_id in enumerate(_dedup(ranking), start=1):
-            scores[doc_id] = scores.get(doc_id, 0.0) + weight / (k + rank)
-    # Ties broken by id so the output is deterministic across runs.
-    return sorted(scores, key=lambda d: (-scores[d], d))
 
 
 class AbstentionScores(dict):
@@ -134,9 +112,9 @@ def abstention_scores(
     if not answerable:
         raise ValueError("cannot score an empty evaluation set")
 
-    tp = sum(1 for a, d in zip(answerable, abstained) if not a and d)
-    fp = sum(1 for a, d in zip(answerable, abstained) if a and d)
-    fn = sum(1 for a, d in zip(answerable, abstained) if not a and not d)
+    tp = sum(1 for a, d in zip(answerable, abstained, strict=True) if not a and d)
+    fp = sum(1 for a, d in zip(answerable, abstained, strict=True) if a and d)
+    fn = sum(1 for a, d in zip(answerable, abstained, strict=True) if not a and not d)
 
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0

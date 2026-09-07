@@ -62,7 +62,9 @@ class TestNDCG:
     def test_graded_relevance(self):
         # The higher-gain document ranked first must beat the reverse ordering.
         graded = {"a": 3.0, "b": 1.0}
-        assert metrics.ndcg_at_k(["a", "b"], graded, 2) > metrics.ndcg_at_k(["b", "a"], graded, 2)
+        assert metrics.ndcg_at_k(["a", "b"], graded, 2) > metrics.ndcg_at_k(
+            ["b", "a"], graded, 2
+        )
 
 
 class TestReciprocalRankFusion:
@@ -83,7 +85,9 @@ class TestReciprocalRankFusion:
 
     def test_deterministic_on_ties(self):
         rankings = [["b", "a"], ["a", "b"]]
-        assert metrics.reciprocal_rank_fusion(rankings) == metrics.reciprocal_rank_fusion(rankings)
+        assert metrics.reciprocal_rank_fusion(rankings) == metrics.reciprocal_rank_fusion(
+            rankings
+        )
 
     def test_rejects_mismatched_weights(self):
         with pytest.raises(ValueError):

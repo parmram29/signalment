@@ -56,7 +56,7 @@ class RustBM25Retriever:
 
         self.chunks = chunks
         self._index = signalment_bm25.Bm25Index(
-            [chunk.indexed_text for chunk in chunks],
+            [chunk.text for chunk in chunks],
             [chunk.note_id for chunk in chunks],
             [chunk.chunk_id for chunk in chunks],
             k1,
@@ -102,4 +102,4 @@ def make_retriever(
             )
         return RustBM25Retriever(chunks, k1=k1, b=b)
 
-    raise ValueError(f"unknown backend {backend!r}; expected one of {ALL + ('auto',)}")
+    raise ValueError(f"unknown backend {backend!r}; expected one of {(*ALL, 'auto')}")

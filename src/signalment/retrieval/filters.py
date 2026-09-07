@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ..schema import Note
 from .base import Hit, Query
+from .fusion import reciprocal_rank_fusion
 
 
 class SpeciesFilter:
@@ -26,8 +27,7 @@ class SpeciesFilter:
         candidates = self.inner.search(query, k * 5)
         allowed = {query.species, "multi"}
         kept = [
-            hit for hit in candidates
-            if self.species_by_note.get(hit.note_id, set()) & allowed
+            hit for hit in candidates if self.species_by_note.get(hit.note_id, set()) & allowed
         ]
         return kept[:k]
 
@@ -35,10 +35,9 @@ class SpeciesFilter:
 class FusionRetriever:
     """Combine several retrievers with reciprocal rank fusion."""
 
-    def __init__(self, retrievers: list, weights: list[float] | None = None,
-                 rrf_k: int = 60) -> None:
-        from ..evaluation.metrics import reciprocal_rank_fusion
-
+    def __init__(
+        self, retrievers: list, weights: list[float] | None = None, rrf_k: int = 60
+    ) -> None:
         self._fuse = reciprocal_rank_fusion
         self.retrievers = retrievers
         self.weights = weights

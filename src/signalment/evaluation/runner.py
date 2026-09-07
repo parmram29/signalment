@@ -67,7 +67,9 @@ def evaluate(
             rrs.append(metrics.reciprocal_rank(ranked, item.relevant_note_ids))
         per_query.append(row)
 
-    mean = lambda xs: sum(xs) / len(xs) if xs else 0.0  # noqa: E731
+    def mean(xs: list[float]) -> float:
+        return sum(xs) / len(xs) if xs else 0.0
+
     return RunResult(
         config=getattr(retriever, "name", retriever.__class__.__name__),
         retrieval={

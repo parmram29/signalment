@@ -22,7 +22,7 @@ class BM25Retriever:
         self.chunks = chunks
         self.k1 = k1
         self.b = b
-        self.docs = [tokenize(chunk.indexed_text) for chunk in chunks]
+        self.docs = [tokenize(chunk.text) for chunk in chunks]
         self.tf = [Counter(doc) for doc in self.docs]
         self.lengths = [len(doc) for doc in self.docs]
         self.avg_len = (sum(self.lengths) / len(self.lengths)) if self.lengths else 0.0

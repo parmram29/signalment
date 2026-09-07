@@ -20,7 +20,7 @@ from signalment.retrieval.bm25 import BM25Retriever
 
 pytestmark = pytest.mark.skipif(
     not rust_available(),
-    reason="signalment_bm25 extension not built (maturin develop -m crates/signalment_bm25/Cargo.toml)",
+    reason="signalment_bm25 extension not built; run `make accel`",
 )
 
 TOLERANCE = 1e-9
@@ -76,7 +76,9 @@ def test_identical_ranking(pair, text):
 def test_scores_agree(pair, text):
     python, rust = pair
     query = Query(text=text)
-    for got, want in zip(rust.search(query, 5), python.search(query, 5)):
+    # strict=True matters here: without it, a backend returning fewer hits than
+    # the reference would silently pass by comparing only the pairs that exist.
+    for got, want in zip(rust.search(query, 5), python.search(query, 5), strict=True):
         assert got.score == pytest.approx(want.score, abs=TOLERANCE), (
             f"score diverged for {text!r} on {want.note_id}"
         )

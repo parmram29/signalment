@@ -70,7 +70,9 @@ class TestSpeciesFilter:
         filtered = SpeciesFilter(bm25, notes)
         unfiltered = bm25.search(Query("hypoglycaemia dogs cats"), k=2)
         hits = filtered.search(Query("hypoglycaemia dogs cats", species="feline"), k=2)
-        assert len(hits) >= min(2, len([h for h in unfiltered if h.note_id != "vet-endo-0143"]))
+        assert len(hits) >= min(
+            2, len([h for h in unfiltered if h.note_id != "vet-endo-0143"])
+        )
 
 
 class TestFusion:

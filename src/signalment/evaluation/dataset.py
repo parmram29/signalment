@@ -26,7 +26,7 @@ class GoldItem:
     rationale: str = ""
 
     @classmethod
-    def from_dict(cls, raw: dict) -> "GoldItem":
+    def from_dict(cls, raw: dict) -> GoldItem:
         missing = {"qid", "question", "answerable"} - raw.keys()
         if missing:
             raise ValueError(f"gold item missing fields: {sorted(missing)}")
@@ -76,9 +76,12 @@ def load_gold(path: str | Path, known_note_ids: set[str] | None = None) -> list[
         # recall at less than 1.0 and looks like a retrieval bug for weeks.
         dangling = {
             f"{i.qid} -> {nid}"
-            for i in items for nid in i.relevant_note_ids
+            for i in items
+            for nid in i.relevant_note_ids
             if nid not in known_note_ids
         }
         if dangling:
-            raise ValueError(f"{path}: gold labels reference unknown notes: {sorted(dangling)}")
+            raise ValueError(
+                f"{path}: gold labels reference unknown notes: {sorted(dangling)}"
+            )
     return items

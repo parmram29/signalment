@@ -24,9 +24,11 @@ Body text.
 
 def make(note_id, authored, reviewed=None, note_type="mechanism", title="T"):
     line = f"last_reviewed: {reviewed}\n" if reviewed else ""
-    return parse_note(TEMPLATE.format(
-        id=note_id, title=title, note_type=note_type, authored=authored, reviewed=line
-    ))
+    return parse_note(
+        TEMPLATE.format(
+            id=note_id, title=title, note_type=note_type, authored=authored, reviewed=line
+        )
+    )
 
 
 class TestStaleNotes:
@@ -56,7 +58,7 @@ class TestStaleNotes:
 
     def test_boundary_is_exclusive(self):
         # Exactly at the limit is not yet stale; one day past is.
-        at = make("vet-a-0001", "2026-03-05")   # 180 days before TODAY
+        at = make("vet-a-0001", "2026-03-05")  # 180 days before TODAY
         assert (TODAY - date(2026, 3, 5)).days == 180
         assert stale_notes([at], 180, today=TODAY) == []
         assert len(stale_notes([at], 179, today=TODAY)) == 1

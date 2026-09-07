@@ -32,7 +32,10 @@ def cmd_lint(args) -> int:
 def cmd_eval(args) -> int:
     notes, errors = load_corpus(args.corpus)
     if errors:
-        print(f"refusing to evaluate: {len(errors)} invalid note(s). Run `lint`.", file=sys.stderr)
+        print(
+            f"refusing to evaluate: {len(errors)} invalid note(s). Run `lint`.",
+            file=sys.stderr,
+        )
         return 1
 
     gold = load_gold(args.gold, known_note_ids={n.id for n in notes})
@@ -53,8 +56,7 @@ def cmd_eval(args) -> int:
         configs += [sqlite, SpeciesFilter(sqlite, notes)]
 
     results = [
-        evaluate(r, gold, k=args.k, abstain_threshold=args.abstain_threshold)
-        for r in configs
+        evaluate(r, gold, k=args.k, abstain_threshold=args.abstain_threshold) for r in configs
     ]
 
     warnings = check_drift(configs[-1], gold, k=args.k)
@@ -63,9 +65,11 @@ def cmd_eval(args) -> int:
         print(file=sys.stderr)
 
     print(f"corpus: {len(notes)} notes -> {len(chunks)} chunks")
-    print(f"gold:   {len(gold)} questions "
-          f"({sum(g.answerable for g in gold)} answerable, "
-          f"{sum(not g.answerable for g in gold)} unanswerable)\n")
+    print(
+        f"gold:   {len(gold)} questions "
+        f"({sum(g.answerable for g in gold)} answerable, "
+        f"{sum(not g.answerable for g in gold)} unanswerable)\n"
+    )
     print(markdown_table(results))
 
     if args.out:
@@ -88,21 +92,29 @@ def cmd_sweep(args) -> int:
     """
     notes, errors = load_corpus(args.corpus)
     if errors:
-        print(f"refusing to evaluate: {len(errors)} invalid note(s). Run `lint`.", file=sys.stderr)
+        print(
+            f"refusing to evaluate: {len(errors)} invalid note(s). Run `lint`.",
+            file=sys.stderr,
+        )
         return 1
 
     gold = load_gold(args.gold, known_note_ids={n.id for n in notes})
     retriever = SpeciesFilter(BM25Retriever(chunk_corpus(notes)), notes)
 
-    header = f"| {'thr':>5} | {'recall@k':>8} | {'abstain F1':>10} | {'false refusal':>13} | {'unsupported':>11} |"
+    header = (
+        f"| {'thr':>5} | {'recall@k':>8} | {'abstain F1':>10} "
+        f"| {'false refusal':>13} | {'unsupported':>11} |"
+    )
     print(header)
     print("|" + "|".join("-" * len(c) for c in header.split("|")[1:-1]) + "|")
     for threshold in args.thresholds:
         result = evaluate(retriever, gold, k=args.k, abstain_threshold=threshold)
-        print(f"| {threshold:>5.1f} | {result.retrieval[f'recall@{args.k}']:>8.3f} "
-              f"| {result.abstention['f1']:>10.3f} "
-              f"| {result.abstention['false_refusal_rate']:>13.3f} "
-              f"| {result.abstention['unsupported_answer_rate']:>11.3f} |")
+        print(
+            f"| {threshold:>5.1f} | {result.retrieval[f'recall@{args.k}']:>8.3f} "
+            f"| {result.abstention['f1']:>10.3f} "
+            f"| {result.abstention['false_refusal_rate']:>13.3f} "
+            f"| {result.abstention['unsupported_answer_rate']:>11.3f} |"
+        )
     return 0
 
 
@@ -121,8 +133,10 @@ def cmd_stale(args) -> int:
     print(f"{len(stale)} of {len(notes)} note(s) unreviewed for over {args.days} days\n")
     for item in stale:
         mark = "!" if item.is_clinical else " "
-        print(f"{mark} {item.note.id.ljust(width)}  {item.days:>5}d since {item.basis}"
-              f"  {item.note.note_type:<12} {item.note.title}")
+        print(
+            f"{mark} {item.note.id.ljust(width)}  {item.days:>5}d since {item.basis}"
+            f"  {item.note.note_type:<12} {item.note.title}"
+        )
     print("\n! = dosage or protocol note; clinical numbers age worst.")
     return 1 if args.strict else 0
 
@@ -131,7 +145,9 @@ def cmd_drift(args) -> int:
     """Check the gold set against the current corpus."""
     notes, errors = load_corpus(args.corpus)
     if errors:
-        print(f"refusing to check: {len(errors)} invalid note(s). Run `lint`.", file=sys.stderr)
+        print(
+            f"refusing to check: {len(errors)} invalid note(s). Run `lint`.", file=sys.stderr
+        )
         return 1
 
     gold = load_gold(args.gold, known_note_ids={n.id for n in notes})
@@ -153,8 +169,12 @@ def main(argv: list[str] | None = None) -> int:
     ev.add_argument("--corpus", default=DEFAULT_CORPUS)
     ev.add_argument("--gold", default=DEFAULT_GOLD)
     ev.add_argument("-k", type=int, default=5, help="cutoff for retrieval metrics")
-    ev.add_argument("--abstain-threshold", type=float, default=0.0,
-                    help="decline when the top retrieval score does not exceed this")
+    ev.add_argument(
+        "--abstain-threshold",
+        type=float,
+        default=0.0,
+        help="decline when the top retrieval score does not exceed this",
+    )
     ev.add_argument("--out", help="write full results as JSON")
     ev.set_defaults(func=cmd_eval)
 
@@ -162,27 +182,35 @@ def main(argv: list[str] | None = None) -> int:
     sweep.add_argument("--corpus", default=DEFAULT_CORPUS)
     sweep.add_argument("--gold", default=DEFAULT_GOLD)
     sweep.add_argument("-k", type=int, default=5)
-    sweep.add_argument("--thresholds", type=float, nargs="+",
-                       default=[0, 1, 2, 3, 4, 5, 6, 8, 10])
+    sweep.add_argument(
+        "--thresholds", type=float, nargs="+", default=[0, 1, 2, 3, 4, 5, 6, 8, 10]
+    )
     sweep.set_defaults(func=cmd_sweep)
 
     stale = sub.add_parser("stale", help="list notes overdue for review")
     stale.add_argument("--corpus", default=DEFAULT_CORPUS)
-    stale.add_argument("--days", type=int, default=180,
-                       help="review interval before a note counts as stale")
-    stale.add_argument("--strict", action="store_true",
-                       help="exit non-zero when stale notes exist (for CI)")
+    stale.add_argument(
+        "--days", type=int, default=180, help="review interval before a note counts as stale"
+    )
+    stale.add_argument(
+        "--strict", action="store_true", help="exit non-zero when stale notes exist (for CI)"
+    )
     stale.set_defaults(func=cmd_stale)
 
     drift = sub.add_parser("drift", help="check the gold set against the corpus")
     drift.add_argument("--corpus", default=DEFAULT_CORPUS)
     drift.add_argument("--gold", default=DEFAULT_GOLD)
     drift.add_argument("-k", type=int, default=5)
-    drift.add_argument("--strong", type=float, default=None,
-                       help="score above which an unanswerable item is suspicious "
-                            "(default: median top score of answerable items)")
-    drift.add_argument("--strict", action="store_true",
-                       help="exit non-zero when drift is detected (for CI)")
+    drift.add_argument(
+        "--strong",
+        type=float,
+        default=None,
+        help="score above which an unanswerable item is suspicious "
+        "(default: median top score of answerable items)",
+    )
+    drift.add_argument(
+        "--strict", action="store_true", help="exit non-zero when drift is detected (for CI)"
+    )
     drift.set_defaults(func=cmd_drift)
 
     args = parser.parse_args(argv)

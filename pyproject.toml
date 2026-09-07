@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 dependencies = ["PyYAML>=6.0"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.4"]
+dev = ["pytest>=7.4", "ruff>=0.6"]
 # Deliberately not required by the core package: the eval harness must run
 # with no models installed, so the baseline is always reproducible.
 retrieval = ["sentence-transformers>=3.0", "faiss-cpu>=1.8"]
@@ -23,6 +23,15 @@ signalment = "signalment.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+line-length = 95
+src = ["src", "tests", "benchmarks"]
+
+[tool.ruff.lint]
+# The Rust side is gated on clippy in CI; Python had no equivalent, which read
+# as carelessness in a repository that argues for measurement.
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

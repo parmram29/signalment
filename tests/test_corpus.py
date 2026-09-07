@@ -61,8 +61,9 @@ class TestParsing:
             parse_note(text)
 
     def test_ai_drafted_note_is_fine_when_marked_honestly(self):
-        text = (VALID.replace("provenance: self-authored", "provenance: ai-drafted")
-                     .replace("confidence: verified", "confidence: draft"))
+        text = VALID.replace("provenance: self-authored", "provenance: ai-drafted").replace(
+            "confidence: verified", "confidence: draft"
+        )
         assert parse_note(text).provenance == "ai-drafted"
 
     def test_accepts_rabbit_and_ferret(self):

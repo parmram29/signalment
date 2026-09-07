@@ -9,6 +9,11 @@ test:
 lint:
 	PYTHONPATH=src python3 -m signalment lint
 
+# Python style, the counterpart to cargo fmt/clippy on the Rust side.
+ruff:
+	python3 -m ruff check src tests benchmarks
+	python3 -m ruff format --check src tests benchmarks
+
 eval:
 	PYTHONPATH=src python3 -m signalment eval --out runs/latest.json
 
@@ -36,5 +41,5 @@ bench:
 	PYTHONPATH=src python3 benchmarks/bench_retrieval.py --scale 200
 
 # Everything that must pass before a commit.
-check: lint test drift
+check: lint ruff test drift
 	@echo "ok"

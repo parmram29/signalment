@@ -8,15 +8,28 @@ provenance both read from it.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
 
 # Species is a hard retrieval filter, not a hint. Veterinary medicine's
 # characteristic hazard is a canine answer returned for a feline question:
 # the two are near-identical semantically and can differ lethally in dosing.
-SPECIES = {"canine", "feline", "equine", "bovine", "ovine", "caprine",
-           "porcine", "avian", "lagomorph", "rabbit", "ferret", "rodent",
-           "reptile", "multi"}
+SPECIES = {
+    "canine",
+    "feline",
+    "equine",
+    "bovine",
+    "ovine",
+    "caprine",
+    "porcine",
+    "avian",
+    "lagomorph",
+    "rabbit",
+    "ferret",
+    "rodent",
+    "reptile",
+    "multi",
+}
 
 NOTE_TYPES = {"definition", "mechanism", "differential", "protocol", "dosage", "case"}
 
@@ -24,8 +37,14 @@ NOTE_TYPES = {"definition", "mechanism", "differential", "protocol", "dosage", "
 # but a medical assistant must be able to rank and filter by review state.
 CONFIDENCE = {"draft", "reviewed", "verified"}
 
-PROVENANCE = {"self-authored", "lecture", "textbook", "guideline",
-              "primary-literature", "ai-drafted"}
+PROVENANCE = {
+    "self-authored",
+    "lecture",
+    "textbook",
+    "guideline",
+    "primary-literature",
+    "ai-drafted",
+}
 
 # Content a model wrote. It may be a useful starting point, but "verified" is a
 # claim that a human checked it against a source, and a model cannot make that
@@ -35,8 +54,16 @@ UNVERIFIABLE_PROVENANCE = frozenset({"ai-drafted"})
 
 ID_PATTERN = re.compile(r"^vet-[a-z0-9]+-\d{4}$")
 
-REQUIRED = ("id", "title", "species", "system", "note_type", "confidence",
-            "provenance", "authored")
+REQUIRED = (
+    "id",
+    "title",
+    "species",
+    "system",
+    "note_type",
+    "confidence",
+    "provenance",
+    "authored",
+)
 
 
 @dataclass(frozen=True)
@@ -82,7 +109,9 @@ def _as_tuple(value: object, field_name: str) -> tuple[str, ...]:
         return (value,)
     if isinstance(value, (list, tuple)):
         return tuple(str(v) for v in value)
-    raise ValidationError(f"{field_name}: expected a string or list, got {type(value).__name__}")
+    raise ValidationError(
+        f"{field_name}: expected a string or list, got {type(value).__name__}"
+    )
 
 
 def _as_date(value: object, field_name: str) -> date:

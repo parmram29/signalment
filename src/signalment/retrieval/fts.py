@@ -85,7 +85,7 @@ class FTS5Retriever:
         )
         self._conn.executemany(
             "INSERT INTO chunks (note_id, chunk_id, body) VALUES (?, ?, ?)",
-            [(c.note_id, c.chunk_id, c.indexed_text) for c in chunks],
+            [(c.note_id, c.chunk_id, c.text) for c in chunks],
         )
         self._conn.commit()
 
@@ -114,4 +114,23 @@ class FTS5Retriever:
         return len(self.chunks)
 
     def close(self) -> None:
+        """Release the SQLite connection.
+
+        Harmless to skip in a test run, where the process exits anyway. It is
+        not harmless in the Phase 6 API, which builds retrievers per request:
+        an unclosed connection there leaks a file descriptor per call.
+        """
         self._conn.close()
+
+    def __enter__(self) -> FTS5Retriever:
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
+    def __del__(self) -> None:
+        # Last resort for callers that neither close() nor use `with`.
+        # __init__ can raise before _conn exists, hence the guard.
+        conn = getattr(self, "_conn", None)
+        if conn is not None:
+            conn.close()

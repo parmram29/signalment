@@ -16,6 +16,7 @@ Run:  PYTHONPATH=src python3 benchmarks/bench_retrieval.py --scale 200
 from __future__ import annotations
 
 import argparse
+import functools
 import platform
 import statistics
 import sys
@@ -63,12 +64,17 @@ def time_it(fn, repeats: int) -> tuple[float, float]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--corpus", default="corpus/notes")
-    parser.add_argument("--scale", type=int, default=200,
-                        help="replicate the corpus this many times")
+    parser.add_argument(
+        "--scale", type=int, default=200, help="replicate the corpus this many times"
+    )
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("-k", type=int, default=5)
-    parser.add_argument("--backends", nargs="+", default=None,
-                        help="restrict to these backends (default: all available)")
+    parser.add_argument(
+        "--backends",
+        nargs="+",
+        default=None,
+        help="restrict to these backends (default: all available)",
+    )
     args = parser.parse_args()
 
     notes, errors = load_corpus(args.corpus)
@@ -79,8 +85,10 @@ def main() -> int:
     chunks = scale_corpus(chunk_corpus(notes), args.scale)
     backends = available_backends() if args.backends is None else args.backends
 
-    print(f"machine: {platform.machine()} · {platform.system()} {platform.release()} "
-          f"· python {sys.version_info.major}.{sys.version_info.minor}")
+    print(
+        f"machine: {platform.machine()} · {platform.system()} {platform.release()} "
+        f"· python {sys.version_info.major}.{sys.version_info.minor}"
+    )
     print(f"corpus: {len(notes)} notes x{args.scale} -> {len(chunks)} chunks")
     print(f"queries: {len(QUERIES)}, k={args.k}, repeats={args.repeats}")
     print(f"backends: {', '.join(backends)}\n")
@@ -96,10 +104,11 @@ def main() -> int:
 
     timings: dict[str, tuple[float, float]] = {}
     for name in backends:
-        _, build_best = time_it(lambda: make_retriever(chunks, backend=name), args.repeats)
+        build = functools.partial(make_retriever, chunks, backend=name)
+        _, build_best = time_it(build, args.repeats)
         retriever = make_retriever(chunks, backend=name)
 
-        def run_queries():
+        def run_queries(retriever=retriever):
             for text in QUERIES:
                 retriever.search(Query(text=text), args.k)
 
@@ -113,12 +122,11 @@ def main() -> int:
 
     for name in backends:
         build_best, per_query = timings[name]
-        if baseline and per_query:
-            speedup = f"{baseline / per_query:.1f}x"
-        else:
-            speedup = "--"
-        print(f"| {name:<12} | {build_best * 1e3:>11.2f} | {per_query * 1e3:>12.3f} "
-              f"| {speedup:>8} |")
+        speedup = f"{baseline / per_query:.1f}x" if baseline and per_query else "--"
+        print(
+            f"| {name:<12} | {build_best * 1e3:>11.2f} | {per_query * 1e3:>12.3f} "
+            f"| {speedup:>8} |"
+        )
 
     print("\nsearch is per query, median of repeats; build is best of repeats.")
     print("speedup is relative to the pure-Python reference implementation.")
