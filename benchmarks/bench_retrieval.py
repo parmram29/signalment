@@ -16,7 +16,9 @@ Run:  PYTHONPATH=src python3 benchmarks/bench_retrieval.py --scale 200
 from __future__ import annotations
 
 import argparse
+import platform
 import statistics
+import sys
 import time
 
 from signalment.corpus import Chunk, chunk_corpus, load_corpus
@@ -75,6 +77,8 @@ def main() -> int:
     chunks = scale_corpus(chunk_corpus(notes), args.scale)
     backends = available_backends()
 
+    print(f"machine: {platform.machine()} · {platform.system()} {platform.release()} "
+          f"· python {sys.version_info.major}.{sys.version_info.minor}")
     print(f"corpus: {len(notes)} notes x{args.scale} -> {len(chunks)} chunks")
     print(f"queries: {len(QUERIES)}, k={args.k}, repeats={args.repeats}")
     print(f"backends: {', '.join(backends)}\n")

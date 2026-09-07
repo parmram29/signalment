@@ -15,6 +15,17 @@ a hard retrieval filter in this system for the same reason.*
 > Answers questions about *your* veterinary notes, cites which note the answer
 > came from, and tells you when your notes don't cover it.
 
+**Audience: graduate veterinary students (DVM-level and above).** Not pre-vet
+undergraduates. This is a scope decision with teeth, not a label:
+
+- Notes and questions assume clinical vocabulary. No glossary layer, no
+  definition-first framing, no lay-term expansion.
+- The `note_type` mix skews toward `differential`, `protocol` and `case` rather
+  than `definition`. Graduate work is reasoning over facts, not recall of them.
+- **Abstention matters more, not less.** A reader at this level is closer to
+  acting clinically on what they read, so an unsupported answer costs more than
+  it would for an undergraduate revising for a written paper.
+
 Everything in this document exists to deliver that sentence and nothing wider.
 
 ### Non-goals
@@ -322,10 +333,18 @@ bm25 + species filter                                  [done]
 
 ### External benchmark
 
-Veterinary undergraduate final-exam MCQs give an objective, domain-specific
-metric alongside the private gold set — top LLMs report ~90% on a published
-250-question comparison. The claim worth earning: *"local 4B + retrieval reaches
-X% where the same model without retrieval reaches Y%."*
+An external, objective metric alongside the private gold set. Given the graduate
+audience, the right level is **licensing-exam style (NAVLE) or specialty-board
+style**, not undergraduate finals. Published comparisons of LLMs on veterinary
+qualifying examinations put top models near 90%, which is the bar to talk about.
+
+The claim worth earning: *"local model + retrieval reaches X% where the same
+model without retrieval reaches Y%."* The delta is the result; the absolute is
+context.
+
+Source the questions from a published bank you may lawfully use, and record
+which. Do not write them yourself and do not generate them — a benchmark you
+authored measures the same thing your gold set already does.
 
 ---
 
@@ -366,6 +385,43 @@ context becomes a defensible claim backed by numbers.
 - **No dose, drug or numeric value may be emitted without a citation.** Never
   from parametric memory.
 - If context is insufficient, say so — do not fill the gap.
+
+### Hardware portability
+
+**Assume the machine changes.** Development laptop today, a GPU box or a hosted
+endpoint tomorrow, a different laptop after that. The design has to survive that
+without a rewrite, and one structural fact makes it cheap:
+
+**Retrieval is CPU-only and hardware-independent.** BM25, the species filter,
+RRF and the eval harness have no device concept at all, and at this corpus size
+they run in milliseconds anywhere. Reranking and dense embedding are small
+models that run acceptably on CPU. **Only generation is hardware-sensitive** —
+so hardware portability is a question about exactly one component.
+
+That component therefore gets the same treatment retrieval already has in
+`retrieval/backends.py`: a `Generator` protocol, several implementations, one
+selected at runtime.
+
+| Backend | Where it runs | Use when |
+|---|---|---|
+| `llama-cpp` | local CPU or Metal | laptop, offline, private |
+| `ollama` | local, GPU if present | convenience on a workstation |
+| `http` | hosted endpoint | no local capacity, or comparing against a frontier model |
+
+Rules that keep this honest:
+
+1. **Selection is configuration, never code.** One environment variable
+   (`SIGNALMENT_GENERATOR`), same fallback discipline as the retrieval
+   backends: `auto` picks what is available, an explicitly requested backend
+   that is missing raises rather than silently substituting.
+2. **The eval harness must not care.** Every metric in §6 is computed against a
+   `Generator` interface, so swapping hardware re-runs the same suite and the
+   numbers stay comparable.
+3. **Record the machine with the numbers.** A benchmark row without CPU, RAM,
+   accelerator and model quantisation is not reproducible. `benchmarks/` should
+   stamp all four.
+4. **Quantisation is an ablation row, not a detail.** Q4 vs Q8 vs fp16 changes
+   both latency and answer quality; measure it like anything else.
 
 ### Latency budget
 
@@ -524,3 +580,5 @@ will not survive a technical screen.
 | D8 | No LangChain | Fewer moving parts to debug when retrieval misbehaves | Multi-step agentic orchestration becomes a requirement |
 | D9 | Self-authored corpus | Avoids the redistribution question entirely | Nothing |
 | D10 | Generator swappable, chosen by measurement | The Hermes question is empirical | Nothing |
+| D11 | Audience is graduate (DVM+), not pre-vet | Changes note depth, question level, benchmark choice, and raises the cost of an unsupported answer | The user base changes |
+| D12 | Only generation is hardware-sensitive | Retrieval and eval are CPU-only by construction, so portability is one component's problem | A dense model large enough to need a GPU at query time |

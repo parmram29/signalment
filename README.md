@@ -1,6 +1,7 @@
 # Signalment
 
-A retrieval system over a structured corpus of veterinary notes, built
+A retrieval system over a structured corpus of veterinary notes, built for
+**graduate veterinary students** — DVM-level and above, not pre-vet. Built
 **evaluation harness first**. Every architectural claim in this repository is a
 number measured against a gold set, and every number can be reproduced with one
 command.
