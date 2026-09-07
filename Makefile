@@ -17,6 +17,10 @@ ruff:
 eval:
 	PYTHONPATH=src python3 -m signalment eval --out runs/latest.json
 
+# Adds dense and BM25+dense fusion rows. Downloads model weights on first run.
+eval-dense:
+	PYTHONPATH=src python3 -m signalment eval --dense --out runs/dense.json
+
 sweep:
 	PYTHONPATH=src python3 -m signalment sweep
 

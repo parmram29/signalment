@@ -60,7 +60,7 @@ def evaluate(
         }
         if item.answerable:
             row["recall_at_k"] = metrics.recall_at_k(ranked, item.relevant_note_ids, k)
-            row["ndcg_at_k"] = metrics.ndcg_at_k(ranked, item.relevant_note_ids, k)
+            row["ndcg_at_k"] = metrics.ndcg_at_k(ranked, item.gains, k)
             recalls.append(row["recall_at_k"])
             precisions.append(metrics.precision_at_k(ranked, item.relevant_note_ids, k))
             ndcgs.append(row["ndcg_at_k"])

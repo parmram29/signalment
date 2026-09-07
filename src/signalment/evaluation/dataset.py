@@ -24,6 +24,20 @@ class GoldItem:
     species: str | None = None
     expected_answer: str = ""
     rationale: str = ""
+    #: Optional graded relevance, note_id -> gain. Binary judgements treat
+    #: every listed note as equally good, which is false: a note that directly
+    #: answers a question and one that merely touches the topic should not be
+    #: scored the same. nDCG is the metric that can tell them apart, so grades
+    #: are wasted without it and it is blunted without them.
+    #: Suggested scale: 3 answers it, 2 partial, 1 tangential.
+    relevance: tuple[tuple[str, float], ...] = ()
+
+    @property
+    def gains(self) -> dict[str, float]:
+        """Graded gains if provided, else binary over relevant_note_ids."""
+        if self.relevance:
+            return dict(self.relevance)
+        return dict.fromkeys(self.relevant_note_ids, 1.0)
 
     @classmethod
     def from_dict(cls, raw: dict) -> GoldItem:
@@ -32,6 +46,13 @@ class GoldItem:
             raise ValueError(f"gold item missing fields: {sorted(missing)}")
         answerable = bool(raw["answerable"])
         ids = tuple(raw.get("relevant_note_ids") or ())
+        graded = raw.get("relevance") or {}
+        unlisted = sorted(set(graded) - set(ids))
+        if unlisted:
+            raise ValueError(
+                f"{raw['qid']}: relevance grades reference notes missing from "
+                f"relevant_note_ids: {unlisted}"
+            )
         if answerable and not ids:
             raise ValueError(f"{raw['qid']}: answerable item needs relevant_note_ids")
         if not answerable and ids:
@@ -44,6 +65,7 @@ class GoldItem:
             species=raw.get("species"),
             expected_answer=raw.get("expected_answer", ""),
             rationale=raw.get("rationale", ""),
+            relevance=tuple((raw.get("relevance") or {}).items()),
         )
 
 

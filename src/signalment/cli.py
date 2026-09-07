@@ -15,7 +15,7 @@ from .evaluation.runner import evaluate
 from .freshness import stale_notes
 from .retrieval.backends import available_backends, make_retriever
 from .retrieval.bm25 import BM25Retriever
-from .retrieval.filters import SpeciesFilter
+from .retrieval.filters import FusionRetriever, SpeciesFilter
 
 DEFAULT_CORPUS = "corpus/notes"
 DEFAULT_GOLD = "eval/gold/gold_v1.jsonl"
@@ -54,6 +54,22 @@ def cmd_eval(args) -> int:
     if "sqlite" in available_backends():
         sqlite = make_retriever(chunks, backend="sqlite")
         configs += [sqlite, SpeciesFilter(sqlite, notes)]
+
+    # Dense is opt-in: constructing it downloads model weights and embeds the
+    # whole corpus, which is not something `make eval` should do by default.
+    if args.dense:
+        if "dense" not in available_backends():
+            print(
+                'dense needs sentence-transformers: pip install -e ".[retrieval]"',
+                file=sys.stderr,
+            )
+            return 1
+        dense = make_retriever(chunks, backend="dense", pca_components=args.pca)
+        # Lexical and dense fail in different directions — exact rare tokens
+        # versus paraphrase — so fusing them is the row worth looking at, not
+        # either alone. Fusing two lexical retrievers would only average noise.
+        fused = FusionRetriever([bm25, dense])
+        configs += [dense, SpeciesFilter(dense, notes), fused, SpeciesFilter(fused, notes)]
 
     results = [
         evaluate(r, gold, k=args.k, abstain_threshold=args.abstain_threshold) for r in configs
@@ -174,6 +190,17 @@ def main(argv: list[str] | None = None) -> int:
         type=float,
         default=0.0,
         help="decline when the top retrieval score does not exceed this",
+    )
+    ev.add_argument(
+        "--dense",
+        action="store_true",
+        help="add dense and BM25+dense fusion rows (downloads model weights)",
+    )
+    ev.add_argument(
+        "--pca",
+        type=int,
+        default=None,
+        help="project dense embeddings to this many dimensions",
     )
     ev.add_argument("--out", help="write full results as JSON")
     ev.set_defaults(func=cmd_eval)

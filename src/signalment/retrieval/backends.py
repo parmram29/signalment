@@ -14,6 +14,7 @@ from __future__ import annotations
 from ..corpus import Chunk
 from .base import Hit, Query
 from .bm25 import BM25Retriever
+from .dense import DenseRetriever, dense_available
 from .fts import FTS5Retriever, fts5_available
 
 #: Backends in preference order for `backend="auto"`.
@@ -23,7 +24,7 @@ from .fts import FTS5Retriever, fts5_available
 PREFERENCE = ("rust", "python")
 
 #: Every backend that can be requested by name.
-ALL = ("python", "rust", "sqlite")
+ALL = ("python", "rust", "sqlite", "dense")
 
 
 def rust_available() -> bool:
@@ -37,7 +38,7 @@ def rust_available() -> bool:
 
 def available_backends() -> tuple[str, ...]:
     """Backends that can actually be constructed on this machine."""
-    checks = {"rust": rust_available, "sqlite": fts5_available}
+    checks = {"rust": rust_available, "sqlite": fts5_available, "dense": dense_available}
     return tuple(name for name in ALL if checks.get(name, lambda: True)())
 
 
@@ -78,6 +79,7 @@ def make_retriever(
     backend: str = "auto",
     k1: float = 1.5,
     b: float = 0.75,
+    **kwargs,
 ):
     """Build a BM25 retriever using the named backend.
 
@@ -93,6 +95,12 @@ def make_retriever(
         return BM25Retriever(chunks, k1=k1, b=b)
     if backend == "sqlite":
         return FTS5Retriever(chunks)
+    if backend == "dense":
+        if not dense_available():
+            raise RuntimeError(
+                'dense retrieval needs sentence-transformers: pip install -e ".[retrieval]"'
+            )
+        return DenseRetriever(chunks, **kwargs)
     if backend == "rust":
         if not rust_available():
             raise RuntimeError(
