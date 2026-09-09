@@ -582,5 +582,6 @@ will not survive a technical screen.
 | D9 | Self-authored corpus | Avoids the redistribution question entirely | Nothing |
 | D10 | Generator swappable, chosen by measurement | The Hermes question is empirical | Nothing |
 | D11 | Audience is graduate (DVM+), not pre-vet | Changes note depth, question level, benchmark choice, and raises the cost of an unsupported answer | The user base changes |
+| D14 | Dependencies pinned in requirements/*.lock, ranges kept in pyproject | Embeddings are version-sensitive, so unpinned deps let a torch upgrade move recall@5 with no code change — which makes the reproducibility claim false | Nothing |
 | D13 | SQLite FTS5 as a third backend, judged on competitiveness not equality | An accelerator must match the reference; an independent implementation must not be required to. A third opinion is cheap evidence the reference is sound | Nothing |
 | D12 | Only generation is hardware-sensitive | Retrieval and eval are CPU-only by construction, so portability is one component's problem | A dense model large enough to need a GPU at query time |

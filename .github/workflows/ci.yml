@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -e ".[dev]"
+      - run: pip install -r requirements/dev.lock && pip install -e . --no-deps
       - name: Lint corpus
         run: python -m signalment lint
       - name: Python style
@@ -54,7 +54,7 @@ jobs:
         with:
           python-version: "3.11"
       - uses: dtolnay/rust-toolchain@stable
-      - run: pip install -e ".[dev]" maturin
+      - run: pip install -r requirements/dev.lock maturin && pip install -e . --no-deps
       - name: Build extension
         run: maturin develop -m crates/signalment_bm25/Cargo.toml --release
       - name: Differential tests must actually run, not skip

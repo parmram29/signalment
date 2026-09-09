@@ -34,8 +34,8 @@ git clone https://github.com/parmram29/signalment.git
 cd signalment
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
-make check                       # should print: 76 passed ... ok
+make install                     # pinned deps + editable package + git hooks
+make check                       # should print: 158 passed ... ok
 ```
 
 Open the folder in VS Code and accept the recommended extensions. `.vscode/`
