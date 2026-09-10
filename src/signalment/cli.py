@@ -281,6 +281,32 @@ def _ingest_per_page(args, source: Path) -> int:
     return 0
 
 
+def cmd_drafts(args) -> int:
+    """List drafts and whether each is ready to promote."""
+    drafts = sorted(Path(args.drafts).glob("*.md"))
+    drafts = [d for d in drafts if d.name != "README.md"]
+    if not drafts:
+        print(f"no drafts in {args.drafts}/")
+        print("Create some:  signalment ingest sources/<file>.pdf --split pages")
+        return 0
+
+    width = max(len(d.name) for d in drafts)
+    ready = 0
+    for draft in drafts:
+        problems = check_promotable(draft.read_text(encoding="utf-8"))
+        if problems:
+            print(f"  {draft.name.ljust(width)}  needs work  ({problems[0]})")
+        else:
+            ready += 1
+            print(f"  {draft.name.ljust(width)}  READY")
+
+    print(f"\n{len(drafts)} draft(s), {ready} ready to promote")
+    if ready:
+        print("Promote:  signalment promote drafts/<name>.md")
+    print("Discard a draft you do not want:  rm drafts/<name>.md")
+    return 0
+
+
 def cmd_promote(args) -> int:
     """Move a finished draft into the corpus, if it is finished."""
     draft = Path(args.draft)
@@ -403,6 +429,10 @@ def main(argv: list[str] | None = None) -> int:
         help="'pages' writes one draft per page; a lecture is not one note",
     )
     ing.set_defaults(func=cmd_ingest)
+
+    dr = sub.add_parser("drafts", help="list drafts and whether each is ready")
+    dr.add_argument("--drafts", default="drafts")
+    dr.set_defaults(func=cmd_drafts)
 
     pro = sub.add_parser("promote", help="move a finished draft into the corpus")
     pro.add_argument("draft")

@@ -91,6 +91,12 @@ class TestReadSource:
 
 
 class TestExtractPages:
+    def test_missing_file_is_explained_not_traced(self, tmp_path):
+        # The split path skipped read_source's existence check, so a missing
+        # file reached pypdf and surfaced as a traceback.
+        with pytest.raises(IngestError, match="no such file"):
+            extract_pages(tmp_path / "absent.pdf")
+
     def test_non_pdf_yields_one_extraction(self, tmp_path):
         f = tmp_path / "a.txt"
         f.write_text("converted handwriting")

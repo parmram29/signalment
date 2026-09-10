@@ -115,6 +115,7 @@ def extract_pages(path: Path) -> list[Extraction]:
     Pages below the text threshold are dropped — a diagram or a page of pure
     handwriting has nothing to scaffold a draft from.
     """
+    require_exists(path)
     if path.suffix.lower() != ".pdf":
         return [read_source(path)]
     try:
@@ -138,10 +139,21 @@ def extract_pages(path: Path) -> list[Extraction]:
     return out
 
 
+def require_exists(path: Path) -> None:
+    """One missing-file message, used by both ingest paths."""
+    if path.exists():
+        return
+    raise IngestError(
+        f"no such file: {path}\n"
+        f"Source files live in sources/, which is deliberately not in git — a "
+        f"fresh clone has none. Copy or export the file there first, then "
+        f"re-run. `ls sources/` shows what is present."
+    )
+
+
 def read_source(path: Path) -> Extraction:
     """Extract from a supported source file."""
-    if not path.exists():
-        raise IngestError(f"no such file: {path}")
+    require_exists(path)
     suffix = path.suffix.lower()
     if suffix == ".pdf":
         return extract_pdf(path)
