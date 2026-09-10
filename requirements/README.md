@@ -7,6 +7,7 @@ environment. These files pin the *exact* resolution, which is a different job.
 | File | Contents |
 |---|---|
 | `dev.lock` | runtime + test + lint. What CI installs and what `make check` is measured against. |
+| `ingest.lock` | runtime + pypdf, for reading source PDFs. |
 | `retrieval.lock` | runtime + sentence-transformers, torch, transformers. Needed for dense retrieval. |
 
 ## Why this project in particular needs them

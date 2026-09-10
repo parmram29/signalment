@@ -19,5 +19,8 @@ target/
 # the reasoning lives only on one machine.
 sources/*
 !sources/README.md
+# Work in progress. Notes enter the repository when promoted, not before.
+drafts/*
+!drafts/README.md
 *.zip
 *.pdf

@@ -7,15 +7,17 @@ import json
 import sys
 from pathlib import Path
 
-from .corpus import chunk_corpus, load_corpus
+from .corpus import chunk_corpus, load_corpus, parse_note
 from .evaluation.dataset import load_gold
 from .evaluation.drift import check_drift, format_warnings
 from .evaluation.report import markdown_table
 from .evaluation.runner import evaluate
 from .freshness import stale_notes
+from .ingest import IngestError, check_promotable, draft_note, read_source, suggest_id
 from .retrieval.backends import available_backends, make_retriever
 from .retrieval.bm25 import BM25Retriever
 from .retrieval.filters import FusionRetriever, SpeciesFilter
+from .schema import ValidationError
 
 DEFAULT_CORPUS = "corpus/notes"
 DEFAULT_GOLD = "eval/gold/gold_v1.jsonl"
@@ -173,6 +175,98 @@ def cmd_drift(args) -> int:
     return 1 if warnings and args.strict else 0
 
 
+def cmd_ingest(args) -> int:
+    """Scaffold a note draft from a source file."""
+    source = Path(args.source)
+    try:
+        extraction = read_source(source)
+    except IngestError as exc:
+        print(f"{exc}", file=sys.stderr)
+        return 1
+
+    if extraction.looks_handwritten:
+        print(
+            f"{source.name}: {extraction.chars_per_page:.0f} characters per page across "
+            f"{extraction.pages} pages.\n"
+            f"That is a picture of handwriting, not text — there is nothing to extract.\n"
+            f"Convert the ink to text in your notes app (it reads pen strokes, not\n"
+            f"pixels, so it is far more accurate than OCR), save as .txt, and ingest that.",
+            file=sys.stderr,
+        )
+        return 1
+
+    notes, _ = load_corpus(args.corpus)
+    drafts = Path(args.drafts)
+    existing = {n.id for n in notes} | {p.stem for p in drafts.glob("*.md")}
+    note_id = args.id or suggest_id(args.topic, existing)
+    if note_id in existing:
+        print(f"id {note_id} already exists", file=sys.stderr)
+        return 1
+
+    try:
+        content = draft_note(
+            source=source,
+            extraction=extraction,
+            note_id=note_id,
+            title=args.title or source.stem,
+            species=args.species,
+            system=args.system,
+            note_type=args.note_type,
+        )
+    except IngestError as exc:
+        print(f"{exc}", file=sys.stderr)
+        return 1
+
+    drafts.mkdir(parents=True, exist_ok=True)
+    out = drafts / f"{note_id}.md"
+    out.write_text(content, encoding="utf-8")
+
+    print(f"wrote {out}")
+    print(f"  {extraction.pages} pages, {len(extraction.text)} characters of source text")
+    print()
+    print("Next: open it, write the note above the source block, delete the block,")
+    print(f"      set confidence, then: signalment promote {out}")
+    return 0
+
+
+def cmd_promote(args) -> int:
+    """Move a finished draft into the corpus, if it is finished."""
+    draft = Path(args.draft)
+    if not draft.exists():
+        print(f"no such draft: {draft}", file=sys.stderr)
+        return 1
+
+    text = draft.read_text(encoding="utf-8")
+    problems = check_promotable(text)
+    if problems:
+        print(f"{draft.name} is not ready:", file=sys.stderr)
+        for problem in problems:
+            print(f"  - {problem}", file=sys.stderr)
+        return 1
+
+    # The schema is the real gate; this only catches it earlier and by name.
+    try:
+        note = parse_note(text, path=str(draft))
+    except ValidationError as exc:
+        print(f"{draft.name}: {exc}", file=sys.stderr)
+        return 1
+
+    destination = Path(args.corpus) / f"{note.id}.md"
+    if destination.exists():
+        print(f"{destination} already exists", file=sys.stderr)
+        return 1
+
+    destination.write_text(text, encoding="utf-8")
+    draft.unlink()
+    print(f"promoted {draft.name} -> {destination}")
+    print()
+    print("Commit it now. A note that exists only in your working tree is one")
+    print("careless edit away from not existing:")
+    print(f"  SIGNALMENT_HUMAN_EDIT=1 git add {destination} && \\")
+    print(f'    SIGNALMENT_HUMAN_EDIT=1 git commit -m "Add note: {note.title}"')
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="signalment")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -239,6 +333,23 @@ def main(argv: list[str] | None = None) -> int:
         "--strict", action="store_true", help="exit non-zero when drift is detected (for CI)"
     )
     drift.set_defaults(func=cmd_drift)
+
+    ing = sub.add_parser("ingest", help="scaffold a note draft from a source file")
+    ing.add_argument("source", help="a .pdf, .txt or .md file, usually under sources/")
+    ing.add_argument("--topic", default="misc", help="short topic slug for the note id")
+    ing.add_argument("--species", default="multi")
+    ing.add_argument("--system", default="general")
+    ing.add_argument("--note-type", default="mechanism", dest="note_type")
+    ing.add_argument("--title", default=None)
+    ing.add_argument("--id", default=None, help="override the generated note id")
+    ing.add_argument("--corpus", default=DEFAULT_CORPUS)
+    ing.add_argument("--drafts", default="drafts")
+    ing.set_defaults(func=cmd_ingest)
+
+    pro = sub.add_parser("promote", help="move a finished draft into the corpus")
+    pro.add_argument("draft")
+    pro.add_argument("--corpus", default=DEFAULT_CORPUS)
+    pro.set_defaults(func=cmd_promote)
 
     args = parser.parse_args(argv)
     return args.func(args)

@@ -17,6 +17,8 @@ retrieval = ["sentence-transformers>=3.0", "faiss-cpu>=1.8"]
 # Builds the optional Rust BM25 extension. The repository is fully functional
 # without it; see crates/signalment_bm25/README.md.
 accel = ["maturin>=1.5"]
+# Reading source files. Small and pure-Python, but not everyone ingests PDFs.
+ingest = ["pypdf>=4.0"]
 
 [project.scripts]
 signalment = "signalment.cli:main"
