@@ -7,8 +7,6 @@ guarding, because a system that bluffs is worse than no system.
 
 from __future__ import annotations
 
-import pytest
-
 from signalment.cli import main
 
 

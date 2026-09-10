@@ -338,9 +338,8 @@ def cmd_ask(args) -> int:
     for rank, hit in enumerate(hits, start=1):
         note = by_id[hit.note_id]
         print(f"{rank}. {note.title}")
-        print(
-            f"   [{note.id}]  {note.confidence}  ·  {note.provenance}  ·  score {hit.score:.2f}"
-        )
+        meta = f"{note.confidence}  ·  {note.provenance}  ·  score {hit.score:.2f}"
+        print(f"   [{note.id}]  {meta}")
         chunk = by_chunk.get(hit.chunk_id)
         if chunk:
             excerpt = " ".join(chunk.text.split())
