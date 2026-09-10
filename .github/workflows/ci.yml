@@ -17,6 +17,16 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements/dev.lock && pip install -e . --no-deps
+      - name: Corpus contains only notes
+        run: |
+          stray=$(find corpus/notes eval/gold -type f \
+                  ! -name '*.md' ! -name '*.jsonl' -print)
+          if [ -n "$stray" ]; then
+            echo "::error::non-note files in the corpus:"; echo "$stray"
+            echo "corpus/notes/ holds Markdown notes and eval/gold/ holds JSONL."
+            echo "Source PDFs, archives and exports belong outside git — see sources/."
+            exit 1
+          fi
       - name: Lint corpus
         run: python -m signalment lint
       - name: Python style

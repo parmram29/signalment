@@ -39,6 +39,19 @@ MSG
   exit 1
 fi
 
+# Only notes belong in the corpus. A PDF or zip here is inert — load_corpus
+# globs *.md — so it adds bytes to git history forever and buys nothing.
+stray="$(printf '%s\n' "$staged" | grep -E "$PROTECTED" \
+         | grep -vE '\.(md|jsonl)$' || true)"
+if [ -n "$stray" ]; then
+  echo >&2
+  echo "  BLOCKED: non-note files staged into the corpus:" >&2
+  printf '    %s\n' $stray >&2
+  echo "  Source material belongs in sources/, which is gitignored." >&2
+  echo >&2
+  exit 1
+fi
+
 # Corpus validity, when the toolchain is available. A missing interpreter is a
 # setup problem, not a reason to block a commit, so that case warns and passes.
 if printf '%s\n' "$staged" | grep -qE '^(corpus/|src/)'; then
