@@ -15,6 +15,9 @@ target/
 # Source material: lecture PDFs, GoodNotes exports, archives. Kept out of git
 # because it is large, binary, permanent once committed, and mostly other
 # people's copyrighted slides. Notes written from it live in corpus/notes/.
-sources/
+# The directory's contents are ignored; the README explaining it is not, or
+# the reasoning lives only on one machine.
+sources/*
+!sources/README.md
 *.zip
 *.pdf
