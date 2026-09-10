@@ -18,6 +18,7 @@ from signalment.ingest import (
     IngestError,
     check_promotable,
     draft_note,
+    extract_pages,
     normalise,
     read_source,
     suggest_id,
@@ -87,6 +88,27 @@ class TestReadSource:
         f.write_text("x")
         with pytest.raises(IngestError, match="convert it to text"):
             read_source(f)
+
+
+class TestExtractPages:
+    def test_non_pdf_yields_one_extraction(self, tmp_path):
+        f = tmp_path / "a.txt"
+        f.write_text("converted handwriting")
+        pages = extract_pages(f)
+        assert len(pages) == 1
+        assert pages[0].page_number is None
+
+    def test_page_numbers_are_one_based(self):
+        # Reported to the user, so off-by-one here is a wrong page in a message.
+        from signalment.ingest import Extraction
+
+        e = Extraction(text="x", pages=1, chars_per_page=1.0, page_number=1)
+        assert e.page_number == 1
+
+    def test_whole_file_extraction_has_no_page_number(self):
+        from signalment.ingest import Extraction
+
+        assert Extraction(text="x", pages=9, chars_per_page=1.0).page_number is None
 
 
 class TestSuggestId:

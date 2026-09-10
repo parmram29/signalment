@@ -13,7 +13,14 @@ from .evaluation.drift import check_drift, format_warnings
 from .evaluation.report import markdown_table
 from .evaluation.runner import evaluate
 from .freshness import stale_notes
-from .ingest import IngestError, check_promotable, draft_note, read_source, suggest_id
+from .ingest import (
+    IngestError,
+    check_promotable,
+    draft_note,
+    extract_pages,
+    read_source,
+    suggest_id,
+)
 from .retrieval.backends import available_backends, make_retriever
 from .retrieval.bm25 import BM25Retriever
 from .retrieval.filters import FusionRetriever, SpeciesFilter
@@ -179,6 +186,8 @@ def cmd_ingest(args) -> int:
     """Scaffold a note draft from a source file."""
     source = Path(args.source)
     try:
+        if args.split == "pages":
+            return _ingest_per_page(args, source)
         extraction = read_source(source)
     except IngestError as exc:
         print(f"{exc}", file=sys.stderr)
@@ -226,6 +235,49 @@ def cmd_ingest(args) -> int:
     print()
     print("Next: open it, write the note above the source block, delete the block,")
     print(f"      set confidence, then: signalment promote {out}")
+    return 0
+
+
+def _ingest_per_page(args, source: Path) -> int:
+    """One draft per page, skipping pages with no usable text."""
+    pages = extract_pages(source)
+    notes, _ = load_corpus(args.corpus)
+    drafts = Path(args.drafts)
+    drafts.mkdir(parents=True, exist_ok=True)
+    existing = {n.id for n in notes} | {p.stem for p in drafts.glob("*.md")}
+
+    written, skipped = [], []
+    for extraction in pages:
+        if extraction.looks_handwritten:
+            skipped.append(extraction.page_number)
+            continue
+        note_id = suggest_id(args.topic, existing)
+        existing.add(note_id)
+        title = f"{args.title or source.stem} (p{extraction.page_number})"
+        content = draft_note(
+            source=source,
+            extraction=extraction,
+            note_id=note_id,
+            title=title,
+            species=args.species,
+            system=args.system,
+            note_type=args.note_type,
+        )
+        (drafts / f"{note_id}.md").write_text(content, encoding="utf-8")
+        written.append((note_id, extraction.page_number, len(extraction.text)))
+
+    for note_id, page, chars in written:
+        print(f"  {note_id}.md   page {page:>3}  {chars:>5} chars")
+    print(f"\n{len(written)} draft(s) in {drafts}/")
+    if skipped:
+        print(
+            f"skipped {len(skipped)} page(s) with no extractable text "
+            f"(diagrams or handwriting): {skipped}"
+        )
+    if not written:
+        print("nothing to ingest — every page was a picture", file=sys.stderr)
+        return 1
+    print("\nWrite up the pages worth keeping; delete the drafts you do not want.")
     return 0
 
 
@@ -344,6 +396,12 @@ def main(argv: list[str] | None = None) -> int:
     ing.add_argument("--id", default=None, help="override the generated note id")
     ing.add_argument("--corpus", default=DEFAULT_CORPUS)
     ing.add_argument("--drafts", default="drafts")
+    ing.add_argument(
+        "--split",
+        choices=("none", "pages"),
+        default="none",
+        help="'pages' writes one draft per page; a lecture is not one note",
+    )
     ing.set_defaults(func=cmd_ingest)
 
     pro = sub.add_parser("promote", help="move a finished draft into the corpus")

@@ -43,6 +43,8 @@ class Extraction:
     text: str
     pages: int
     chars_per_page: float
+    #: Set when this came from splitting a document; None for a whole file.
+    page_number: int | None = None
 
     @property
     def looks_handwritten(self) -> bool:
@@ -101,6 +103,39 @@ def normalise(text: str) -> str:
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
+
+
+def extract_pages(path: Path) -> list[Extraction]:
+    """One Extraction per page, for splitting a lecture into several drafts.
+
+    A 27-page lecture is not one idea, and a single draft holding all of it
+    fights the atomic-note rule the whole corpus depends on. Splitting by page
+    matches how slide decks are actually built: one slide, one point.
+
+    Pages below the text threshold are dropped — a diagram or a page of pure
+    handwriting has nothing to scaffold a draft from.
+    """
+    if path.suffix.lower() != ".pdf":
+        return [read_source(path)]
+    try:
+        import logging
+
+        from pypdf import PdfReader
+
+        logging.getLogger("pypdf").setLevel(logging.ERROR)
+    except ImportError as exc:
+        raise IngestError(
+            'reading PDFs needs pypdf. Install it with:\n  pip install -e ".[ingest]"'
+        ) from exc
+
+    reader = PdfReader(str(path))
+    out = []
+    for index, page in enumerate(reader.pages, start=1):
+        text = normalise(page.extract_text() or "")
+        out.append(
+            Extraction(text=text, pages=1, chars_per_page=float(len(text)), page_number=index)
+        )
+    return out
 
 
 def read_source(path: Path) -> Extraction:
