@@ -15,6 +15,37 @@ retrieval filter here, not a ranking signal, for the same reason a clinician
 writes the signalment first: a canine answer to a feline question is not a
 near miss, it is a different answer.
 
+## Ask it something
+
+```bash
+signalment ask "why do newborn kittens get low blood sugar" --species feline
+```
+
+```
+2 note(s) answer this.
+
+1. Neonatal hypoglycaemia in kittens — pathophysiology
+   [vet-endo-0142]  verified  ·  self-authored  ·  score 2.96
+   Neonatal kittens carry small hepatic glycogen reserves and have immature
+   gluconeogenesis, so they depend on frequent enteral intake…
+
+Sources: vet-endo-0142
+```
+
+And when they don't cover it:
+
+```
+Not covered by your notes.
+Nearest, but not clearly on topic: Permethrin toxicosis in cats [vet-tox-0007]
+(several notes matched about equally — margin 1.02, below 1.5 — which is what
+a question the corpus cannot answer looks like)
+```
+
+No language model is involved yet. The system finds the notes that answer the
+question and shows them with their citations and review state; Phase 5 adds
+prose on top. Shipping the citations first keeps that order honest — the prose
+is the part that can lie.
+
 ```bash
 make install     # editable install with dev deps
 make lint        # validate the corpus front-matter

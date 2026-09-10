@@ -22,6 +22,7 @@ from .ingest import (
     suggest_id,
 )
 from .retrieval.backends import available_backends, make_retriever
+from .retrieval.base import Query
 from .retrieval.bm25 import BM25Retriever
 from .retrieval.filters import FusionRetriever, SpeciesFilter
 from .schema import ValidationError
@@ -281,6 +282,85 @@ def _ingest_per_page(args, source: Path) -> int:
     return 0
 
 
+def cmd_ask(args) -> int:
+    """Answer a question from the corpus, or decline.
+
+    This is the product surface. Everything else in this CLI exists to make
+    what happens here measurable; this is the thing a student actually runs.
+
+    There is no language model involved yet. The system retrieves the notes
+    that answer the question and shows them with their citations and review
+    state. Phase 5 adds prose on top — but the prose is the least important
+    part, and shipping the citations first keeps that honest.
+    """
+    notes, errors = load_corpus(args.corpus)
+    if errors:
+        print(f"{len(errors)} invalid note(s); run `signalment lint`", file=sys.stderr)
+        return 1
+    if not notes:
+        print("the corpus is empty — write some notes first", file=sys.stderr)
+        return 1
+
+    by_id = {note.id: note for note in notes}
+    chunks = chunk_corpus(notes)
+    retriever = SpeciesFilter(BM25Retriever(chunks), notes)
+    hits = retriever.search(Query(text=args.question, species=args.species), args.k)
+
+    top = hits[0].score if hits else 0.0
+
+    # Absolute BM25 scores are not comparable across queries — a question the
+    # corpus answers well and one it cannot answer at all can both return a top
+    # score near 3. The *margin* does separate them: a real answer stands out
+    # from the runners-up, while a query the corpus cannot answer matches
+    # several notes weakly and about equally. So the gate is relative, which
+    # needs no per-corpus calibration.
+    margin = (top / hits[1].score) if len(hits) > 1 and hits[1].score > 0 else float("inf")
+    declined = top <= args.abstain_threshold or margin < args.min_margin
+
+    if declined:
+        print("Not covered by your notes.")
+        if hits:
+            nearest = ", ".join(f"{by_id[h.note_id].title} [{h.note_id}]" for h in hits[:2])
+            print(f"Nearest, but not clearly on topic: {nearest}")
+            if margin < args.min_margin:
+                print(
+                    f"(several notes matched about equally — margin {margin:.2f}, "
+                    f"below {args.min_margin} — which is what a question the corpus "
+                    f"cannot answer looks like)"
+                )
+        print()
+        print("That is the honest answer, not a failure. Write the note, or ask")
+        print("something your notes cover.")
+        return 0
+
+    by_chunk = {chunk.chunk_id: chunk for chunk in chunks}
+    print(f"{len(hits)} note(s) answer this.\n")
+    for rank, hit in enumerate(hits, start=1):
+        note = by_id[hit.note_id]
+        print(f"{rank}. {note.title}")
+        print(
+            f"   [{note.id}]  {note.confidence}  ·  {note.provenance}  ·  score {hit.score:.2f}"
+        )
+        chunk = by_chunk.get(hit.chunk_id)
+        if chunk:
+            excerpt = " ".join(chunk.text.split())
+            # Drop the bracketed context header the chunker prepends; it is
+            # indexing machinery, not something a reader asked to see.
+            excerpt = excerpt.split("]", 1)[-1].strip() if excerpt.startswith("[") else excerpt
+            print(f"   {excerpt[: args.chars]}{'…' if len(excerpt) > args.chars else ''}")
+        print()
+
+    print("Sources: " + ", ".join(h.note_id for h in hits))
+    unverified = [by_id[h.note_id] for h in hits if by_id[h.note_id].confidence != "verified"]
+    if unverified:
+        print(
+            "Note: "
+            + ", ".join(f"{n.id} is {n.confidence}" for n in unverified)
+            + " — you have not confirmed these against a source."
+        )
+    return 0
+
+
 def cmd_drafts(args) -> int:
     """List drafts and whether each is ready to promote."""
     drafts = sorted(Path(args.drafts).glob("*.md"))
@@ -429,6 +509,27 @@ def main(argv: list[str] | None = None) -> int:
         help="'pages' writes one draft per page; a lecture is not one note",
     )
     ing.set_defaults(func=cmd_ingest)
+
+    ask = sub.add_parser("ask", help="ask a question of your notes")
+    ask.add_argument("question")
+    ask.add_argument("--species", default=None, help="restrict to one species")
+    ask.add_argument("-k", type=int, default=3, help="how many notes to return")
+    ask.add_argument(
+        "--abstain-threshold",
+        type=float,
+        default=0.0,
+        help="decline when the best note scores no higher than this",
+    )
+    ask.add_argument(
+        "--min-margin",
+        type=float,
+        default=1.5,
+        help="decline unless the best note outscores the second by this factor; "
+        "0 disables the check",
+    )
+    ask.add_argument("--chars", type=int, default=280, help="excerpt length")
+    ask.add_argument("--corpus", default=DEFAULT_CORPUS)
+    ask.set_defaults(func=cmd_ask)
 
     dr = sub.add_parser("drafts", help="list drafts and whether each is ready")
     dr.add_argument("--drafts", default="drafts")
