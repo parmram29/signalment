@@ -31,6 +31,8 @@ drift:
 	PYTHONPATH=src python3 -m signalment drift
 
 # Build the optional Rust accelerator into the active environment.
+# `maturin develop` needs an active virtualenv; `source .venv/bin/activate`
+# first. CI builds a wheel instead, for a runner that has no venv.
 accel:
 	python3 -m pip install maturin
 	maturin develop -m crates/signalment_bm25/Cargo.toml --release

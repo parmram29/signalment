@@ -65,8 +65,14 @@ jobs:
           python-version: "3.11"
       - uses: dtolnay/rust-toolchain@stable
       - run: pip install -r requirements/dev.lock maturin && pip install -e . --no-deps
+      # `maturin develop` needs an active virtualenv, which a runner using
+      # actions/setup-python does not have — Python is on PATH but not in a
+      # venv. Build a wheel and install it, which maturin's own error message
+      # recommends and which does not care about the environment shape.
       - name: Build extension
-        run: maturin develop -m crates/signalment_bm25/Cargo.toml --release
+        run: |
+          maturin build -m crates/signalment_bm25/Cargo.toml --release --out dist
+          pip install --force-reinstall dist/*.whl
       - name: Differential tests must actually run, not skip
         run: pytest tests/test_backend_equivalence.py -q --no-header -rN
       - name: Full suite
